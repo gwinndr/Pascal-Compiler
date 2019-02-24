@@ -8,56 +8,70 @@ whitespace [ \t]+
 number  [0-9]+
 id   [A-Za-z][A-Za-z0-9]*
 
+%s COMMENT
+
 %%
 
 {whitespace} ;
-"\n"  return END_OF_FILE;
+
+[(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]   { /* Well documented way to ignore comments */
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[COMMENT] ");
+    #endif
+}
+
+"\n" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "\n");
+    #endif
+    /*return 0;*/
+}
 
 <<EOF>> {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [EOF]\n");
+        fprintf(stderr, "[EOF]\n");
     #endif
     return END_OF_FILE;
 }
 
 "program"   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [PROGRAM]\n");
+        fprintf(stderr, "[PROGRAM] ");
     #endif
     return PROGRAM;
 }
 
 "var"   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [VAR]\n");
+        fprintf(stderr, "[VAR] ");
     #endif
     return VARIABLE;
 }
 
 "procedure"   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [PROCEDURE]\n");
+        fprintf(stderr, "[PROCEDURE] ");
     #endif
     return PROCEDURE;
 }
 
 "function"   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [FUNCTION]\n");
+        fprintf(stderr, "[FUNCTION] ");
     #endif
     return FUNCTION;
 }
 
 "begin"   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [BEGIN]\n");
+        fprintf(stderr, "[BEGIN] ");
     #endif
     return BBEGIN;
 }
 
 "end"   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [END]\n");
+        fprintf(stderr, "[END] ");
     #endif
     return END;
 }
@@ -65,25 +79,30 @@ id   [A-Za-z][A-Za-z0-9]*
 
 ":="   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [ASSIGNOP]\n");
+        fprintf(stderr, "[ASSIGNOP] ");
     #endif
     return ASSIGNOP;
 }
 
 {number}   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [NUM]\n");
+        fprintf(stderr, "[NUM:%d] ", atoi(yytext));
     #endif
     return NUM;
 }
 
 {id}   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "FLEX: [ID]\n");
+        fprintf(stderr, "[ID:%s] ", yytext);
     #endif
     return ID;
 }
 
-.   return yytext[0];
+.   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "{%s} ", yytext);
+    #endif
+    return yytext[0];
+}
 
 %%

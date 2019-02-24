@@ -36,7 +36,7 @@
 
 %%
 /* Test grammar for tokenizer */
-grammar: VAR
+grammar: VARIABLE
         | grammar END_OF_FILE {return 0;}
         |
         ;

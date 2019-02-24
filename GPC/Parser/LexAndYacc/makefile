@@ -1,4 +1,4 @@
-LEX = flex -I
+LEX = flex
 YACC = byacc
 CC = gcc
 FLAGS = -g
@@ -12,7 +12,7 @@ FlexDebug: debug_lex.yy.o y.tab.o
 lex.yy.o: lex.yy.c y.tab.h
 	$(CC) $(CCFLAGS) -c lex.yy.c
 y.tab.o: y.tab.c y.tab.h
-	$(CC) $(CCFLAGS) -c lex.yy.c
+	$(CC) $(CCFLAGS) -c y.tab.c
 
 debug_lex.yy.o: lex.yy.c y.tab.h
 	$(CC) $(CCFLAGS) $(FLEX_DEBUG) -c lex.yy.c
