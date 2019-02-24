@@ -7,14 +7,13 @@
 whitespace [ \t]+
 number  [0-9]+
 id   [A-Za-z][A-Za-z0-9]*
-
-%s COMMENT
+comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
 
 %%
 
 {whitespace} ;
 
-[(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]   { /* Well documented way to ignore comments */
+{comment}   { /* Well documented way to ignore comments */
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[COMMENT] ");
     #endif
