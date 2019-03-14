@@ -3,32 +3,32 @@ Damon Gwinn
 Program that computes c = a+b then d = c * a
 Good test for functions and procedures
 *)
-program main();
+program main(input, output);
     var a,b,c,d: integer;
 
     (* Adds numbers *)
-    function Add(a: integer, b: integer) : integer;
+    function Add(a: integer; b: integer) : integer;
     begin
-        Add := a + b;
+        Add := a + b
     end;
 
     (* Multiplies numbers *)
-    function Mult(c: integer, a: integer) : integer;
+    function Mult(c: integer; a: integer) : integer;
     begin
-        Mult := c * a;
+        Mult := c * a
     end;
 
     (* Using this to test procedures *)
-    procedure multadd();
+    procedure multadd;
     begin
         c := Add(a, b);
-        d := Mult(c, a);
+        d := Mult(c, a)
     end;
 
 begin
     a := 5;
     b := 3;
-    multadd();
+    multadd;
     writeln(c);
-    writeln(d);
+    writeln(d)
 end.

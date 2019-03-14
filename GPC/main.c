@@ -23,7 +23,6 @@ int main(int argc, char **argv)
         }
     }
 
-    while(yylex() != END_OF_FILE)
-    ;
+    yyparse();
 
 }

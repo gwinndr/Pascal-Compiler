@@ -5,7 +5,8 @@
 %}
 
 whitespace [ \t]+
-number  [0-9]+
+integer  [0-9]+
+real [0-9]*[.][0-9]+
 id   [A-Za-z][A-Za-z0-9]*
 comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
 
@@ -40,13 +41,6 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     return PROGRAM;
 }
 
-"var"   {
-    #ifdef DEBUG_FLEX
-        fprintf(stderr, "[VAR] ");
-    #endif
-    return VARIABLE;
-}
-
 "procedure"   {
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[PROCEDURE] ");
@@ -75,6 +69,75 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     return END;
 }
 
+"var"   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[VAR] ");
+    #endif
+    return VARIABLE;
+}
+
+"array" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[ARRAY] ");
+    #endif
+    return ARRAY;
+}
+
+".." {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[DOTDOT] ");
+    #endif
+    return DOTDOT;
+}
+
+"of" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[OF] ");
+    #endif
+    return OF;
+}
+
+"if" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[IF] ");
+    #endif
+    return IF;
+}
+
+"then" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[THEN] ");
+    #endif
+    return THEN;
+}
+
+"else" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[ELSE] ");
+    #endif
+    return ELSE;
+}
+
+"for" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[FOR] ");
+    #endif
+    return FOR;
+}
+
+"to" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[TO] ");
+    #endif
+    return TO;
+}
+
+"do" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[DO] ");
+    #endif
+    return DO;
+}
 
 ":="   {
     #ifdef DEBUG_FLEX
@@ -83,11 +146,117 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     return ASSIGNOP;
 }
 
-{number}   {
+">"   {
     #ifdef DEBUG_FLEX
-        fprintf(stderr, "[NUM:%d] ", atoi(yytext));
+        fprintf(stderr, "[RELOP:%s] ", yytext);
     #endif
-    return NUM;
+    return RELOP;
+}
+
+">="   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[RELOP:%s] ", yytext);
+    #endif
+    return RELOP;
+}
+
+"<"   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[RELOP:%s] ", yytext);
+    #endif
+    return RELOP;
+}
+
+"<="   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[RELOP:%s] ", yytext);
+    #endif
+    return RELOP;
+}
+
+"=="   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[RELOP:%s] ", yytext);
+    #endif
+    return RELOP;
+}
+
+"!="   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[RELOP:%s] ", yytext);
+    #endif
+    return RELOP;
+}
+
+"and"   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[AND] ");
+    #endif
+    return AND;
+}
+
+"or"   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[OR] ");
+    #endif
+    return OR;
+}
+
+"*" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[MULOP:%s] ", yytext);
+    #endif
+    return MULOP;
+}
+
+"/" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[MULOP:%s] ", yytext);
+    #endif
+    return MULOP;
+}
+
+"+" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[ADDOP:%s] ", yytext);
+    #endif
+    return ADDOP;
+}
+
+"-" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[ADDOP:%s] ", yytext);
+    #endif
+    return ADDOP;
+}
+
+"integer" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[INT_TYPE] ");
+    #endif
+    return INT_TYPE;
+}
+
+"real" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[REAL_TYPE] ");
+    #endif
+    return REAL_TYPE;
+}
+
+
+{integer}   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[INT_NUM:%d] ", atoi(yytext));
+    #endif
+    return INT_NUM;
+}
+
+{real}   {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[REAL_NUM:%f] ", atof(yytext));
+    #endif
+    return REAL_NUM;
 }
 
 {id}   {

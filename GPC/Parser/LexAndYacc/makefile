@@ -1,5 +1,5 @@
 LEX = flex
-YACC = byacc
+YACC = byacc -v
 CC = gcc
 FLAGS = -g
 
