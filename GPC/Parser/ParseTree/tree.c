@@ -1,5 +1,6 @@
 /* Parse tree for the calculator */
 #include "tree.h"
+#include "tree_types.h"
 #include "y.tab.h"
 #include <stdlib.h>
 #include <stdio.h>

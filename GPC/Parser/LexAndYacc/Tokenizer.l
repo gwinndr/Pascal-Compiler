@@ -1,6 +1,7 @@
 %{
     #include <stdio.h>
     #include <stdlib.h>
+    #include "../ErrVars.h"
     #include "y.tab.h"
 %}
 
@@ -18,13 +19,20 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[COMMENT] ");
     #endif
+
+    int i;
+    for(i = 0; i < strlen(yytext); ++i)
+    {
+        if(yytext[i] == '\n')
+            ++line_num;
+    }
 }
 
 "\n" {
     #ifdef DEBUG_FLEX
         fprintf(stderr, "\n");
     #endif
-    /*return 0;*/
+    ++line_num;
 }
 
 <<EOF>> {
@@ -87,6 +95,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[DOTDOT] ");
     #endif
+
     return DOTDOT;
 }
 

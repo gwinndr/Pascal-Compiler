@@ -9,4 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+int ParsePascal(char *file);
+
 #endif

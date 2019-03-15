@@ -7,7 +7,7 @@ FLAGS = -g
 FLEX_DEBUG = -DDEBUG_FLEX
 
 all: lex.yy.o y.tab.o
-FlexDebug: debug_lex.yy.o y.tab.o
+flexDebug: debug_lex.yy.o y.tab.o
 
 lex.yy.o: lex.yy.c y.tab.h
 	$(CC) $(CCFLAGS) -c lex.yy.c
@@ -24,4 +24,4 @@ lex.yy.c: Tokenizer.l
 	$(LEX) Tokenizer.l
 
 clean:
-	rm -f *.o lex.yy.c y.tab.c y.tab.h
+	rm -f *.o lex.yy.c y.tab.c y.tab.h y.output

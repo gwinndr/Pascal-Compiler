@@ -4,6 +4,8 @@
 
 #define LEAF NULL
 
+#include "tree_types.h"
+
 typedef struct Tree Tree_t;
 typedef struct Tree
 {
@@ -29,7 +31,7 @@ typedef struct Tree
 
         struct Subprogram
         {
-
+            
         }
     };
 

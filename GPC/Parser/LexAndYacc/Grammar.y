@@ -4,6 +4,7 @@
 %{
     #include <stdio.h>
     #include <stdlib.h>
+    #include "../ErrVars.h"
     #include "y.tab.h"
 
     /*extern FILE *yyin;*/
@@ -72,23 +73,13 @@
 
 %%
 
-pascal_file :
-    pascal_file program
-        {
-            if($2 == END_OF_FILE)
-            {
-                return -1;
-            }
-        }
-    | program
-
 program
     : PROGRAM ID '(' identifier_list ')' ';'
      declarations
      subprogram_declarations
      compound_statement
-     '.' {$$ = 0;}
-    | END_OF_FILE {$$ = END_OF_FILE;}
+     '.'
+     END_OF_FILE {return -1;}
     ;
 
 identifier_list
@@ -241,5 +232,14 @@ sign
 
 void yyerror(char *s)
 {
+    /*fprintf(stderr, "Error on line %d:%d\n", line_num, col_num);*/
+    if(file_to_parse != NULL)
+    {
+        fprintf(stderr, "Error parsing %s:\n", file_to_parse);
+        fprintf(stderr, "On line %d:\n", line_num);
+    }
+    else
+        fprintf(stderr, "Error on line %d:\n", line_num);
+
     fprintf(stderr, "%s\n", s);
 }
