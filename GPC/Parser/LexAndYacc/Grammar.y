@@ -63,6 +63,7 @@
 %token<opval> PLUS MINUS OR
 %token MULOP
 %token<opval> STAR SLASH AND
+%token PAREN
 
 /* Easy fix for the dangling else (borrowed from "lex and yacc" [Levine et al.]) */
 %nonassoc THEN
@@ -149,7 +150,7 @@ statement
     | compound_statement
     | if_statement
     | WHILE relop_expression DO statement
-    | FOR for_assign TO expression DO compound_statement
+    | FOR for_assign TO expression DO statement
     ;
 
 /* Dangling else solution is in the token section */
