@@ -27,7 +27,7 @@ typedef struct TreeList
 TreeListNode_t *CreateListNode(void *new_obj, enum ListType type);
 
 /* NOTE: No error checking performed on PushTreeList for types */
-void PushTreeList(TreeListNode_t *head_node, TreeListNode_t *new_node);
+void InsertTreeNode(TreeListNode_t *head_node, TreeListNode_t *new_node);
 
 /* Returns pointer to the next node */
 TreeListNode_t *DeleteTreeListNode(TreeListNode_t *node);

@@ -18,8 +18,10 @@ TreeListNode_t *CreateListNode(void *new_obj, enum ListType type)
     new_node = (TreeListNode_t *)malloc(sizeof(TreeListNode_t));
     new_node->type = type;
     new_node->cur = new_obj;
-    new_node->next = NULL;
-    new_node->prev = NULL;
+    new_node->next = new_node;
+    new_node->prev = new_node;
+
+    return new_node;
 }
 
 /* Implemented FIFO style */
