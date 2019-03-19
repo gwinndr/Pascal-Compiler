@@ -10,8 +10,9 @@ CCFLAGS = $(FLAGS) $(OPTIMIZE)
 
 # Object files to build
 GPC_OBJS = ParsePascal.o
+TREE_OBJS = TreeFifoList.o tree.o
 PARSER_OBJS = $(GRAMMAR_DIR)/lex.yy.o $(GRAMMAR_DIR)/y.tab.o
-ALL_OBJS = $(GPC_OBJS) $(PARSER_OBJS)
+ALL_OBJS = $(GPC_OBJS) $(TREE_OBJS) $(PARSER_OBJS)
 
 ######## THE MAIN BUILD RULES ###########
 release: lexAndYacc parser
@@ -24,8 +25,14 @@ debug_flex: flexDebug parser
 # Please no touch :)
 parser: $(ALL_OBJS)
 
-ParsePascal.o: $(PARSER_OBJS) ParsePascal.h ParsePascal.c
+ParsePascal.o: $(PARSER_OBJS) $(TREE_OBJS) ParsePascal.h ParsePascal.c
 	$(CC) $(CCFLAGS) -c ParsePascal.c
+
+tree.o:
+	$(CC) $(CCFLAGS) -c ParseTree/tree.c
+
+TreeFifoList.o:
+	$(CC) $(CCFLAGS) -c ParseTree/TreeFifoList/TreeFifoList.c
 
 lexAndYacc:
 	cd $(GRAMMAR_DIR) && $(MAKE)

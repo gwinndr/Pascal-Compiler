@@ -8,11 +8,11 @@ LIBS =
 
 BIN = TreeListUnitTest
 
-all: TreeLinkedList.o UnitTest.o
-	$(CC) $(CCFLAGS) -o $(BIN) UnitTest.o TreeLinkedList.o $(LIBS)
+all: TreeFifoList.o UnitTest.o
+	$(CC) $(CCFLAGS) -o $(BIN) UnitTest.o TreeFifoList.o $(LIBS)
 
-TreeLinkedList.o:
-	$(CC) $(CCFLAGS) -c TreeLinkedList.c
+TreeFifoList.o:
+	$(CC) $(CCFLAGS) -c TreeFifoList.c
 
 UnitTest.o:
 	$(CC) $(CCFLAGS) -c UnitTest.c

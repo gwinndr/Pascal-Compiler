@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 
-enum ListType{tree, stmt, expr};
+enum ListType{HEAD_TREE_NODE, LIST_TREE, LIST_STMT, LIST_EXPR, LIST_C, LIST_VAR};
 
 /* Our linked list of tree type nodes */
 typedef struct TreeList TreeListNode_t;
@@ -20,17 +20,18 @@ typedef struct TreeList
     void *cur;
 
     TreeListNode_t *next;
-    TreeListNode_t *prev;
 } TreeListNode_t;
 
 /* Creates a list node */
 TreeListNode_t *CreateListNode(void *new_obj, enum ListType type);
 
 /* NOTE: No error checking performed on PushTreeList for types */
-void InsertTreeNode(TreeListNode_t *head_node, TreeListNode_t *new_node);
+/* This is FIFO style (to mimic a parse tree structure) */
+/* Returns the new head node */
+TreeListNode_t *InsertTreeNode(TreeListNode_t *head_node, TreeListNode_t *new_head);
 
 /* Returns pointer to the next node */
-TreeListNode_t *DeleteTreeListNode(TreeListNode_t *node);
+TreeListNode_t *DeleteTreeListNode(TreeListNode_t *node, TreeListNode_t *prev);
 
 void DestroyList(TreeListNode_t *head_node);
 

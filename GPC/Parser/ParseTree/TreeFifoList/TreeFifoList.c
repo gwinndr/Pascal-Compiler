@@ -7,52 +7,43 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "TreeLinkedList.h"
+#include "TreeFifoList.h"
 
 /* Creates a list node */
 TreeListNode_t *CreateListNode(void *new_obj, enum ListType type)
 {
     TreeListNode_t *new_node;
-    assert(type == tree || type == stmt || type == expr);
 
     new_node = (TreeListNode_t *)malloc(sizeof(TreeListNode_t));
+
     new_node->type = type;
     new_node->cur = new_obj;
-    new_node->next = new_node;
-    new_node->prev = new_node;
+    new_node->next = NULL;
 
     return new_node;
 }
 
 /* Implemented FIFO style */
 /* NOTE: No error checking performed on InsertTreeNode for types */
-void InsertTreeNode(TreeListNode_t *head_node, TreeListNode_t *new_node)
+TreeListNode_t *InsertTreeNode(TreeListNode_t *head_node, TreeListNode_t *new_head)
 {
-    TreeListNode_t *next_node;
-    next_node = head_node->next;
+    assert(head_node != NULL);
+    assert(new_head != NULL);
 
-    assert(new_node != NULL);
-    assert(next_node != NULL);
-
-    new_node->prev = head_node;
-    new_node->next = next_node;
-
-    head_node->next = new_node;
-    next_node->prev = new_node;
+    new_head->next = head_node;
+    return new_head;
 }
 
-TreeListNode_t *DeleteTreeListNode(TreeListNode_t *node)
+TreeListNode_t *DeleteTreeListNode(TreeListNode_t *node, TreeListNode_t *prev)
 {
-    TreeListNode_t *next, *prev;
+    TreeListNode_t *next;
+    assert(node != NULL);
 
     next = node->next;
-    prev = node->prev;
-
-    next->prev = prev;
-    prev->next = next;
+    if(prev != NULL)
+        prev->next = next;
 
     free(node);
-    node = NULL;
 
     return next;
 }
@@ -60,14 +51,11 @@ TreeListNode_t *DeleteTreeListNode(TreeListNode_t *node)
 void DestroyList(TreeListNode_t *head_node)
 {
     TreeListNode_t *cur, *next;
-    cur = head_node->next;
-    while(cur != head_node)
+    cur = head_node;
+    while(cur != NULL)
     {
-        next = cur->next;
-        free(cur);
-        cur = next;
+        cur = DeleteTreeListNode(cur, NULL);
     }
-    free(head_node);
 }
 
 void PrintList(TreeListNode_t *head_node, FILE *f, int num_indent)
@@ -78,11 +66,11 @@ void PrintList(TreeListNode_t *head_node, FILE *f, int num_indent)
     for(i=0; i<num_indent; ++i)
         fprintf(f, "  ");
 
-    cur = head_node->next;
-    while(cur != head_node)
+    cur = head_node;
+    while(cur != NULL)
     {
         fprintf(f, "%d, ", cur->type);
         cur = cur->next;
     }
-    fprintf(f, "%d\n", head_node->type);
+    fprintf(f, "\n");
 }
