@@ -58,6 +58,12 @@ void InsertListNode(ListNode_t *prev, ListNode_t *new_node)
     prev->next = new_node;
 }
 
+/* Pops the top of the list */
+ListNode_t *PopListHeadNode(ListNode_t *head)
+{
+    return DeleteListNode(head, NULL);
+}
+
 ListNode_t *DeleteListNode(ListNode_t *node, ListNode_t *prev)
 {
     ListNode_t *next;

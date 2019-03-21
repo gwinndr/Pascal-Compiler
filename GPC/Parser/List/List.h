@@ -10,7 +10,9 @@
 
 #include <stdio.h>
 
-enum ListType{LIST_TREE, LIST_STMT, LIST_EXPR, LIST_STRING};
+/* Careful with using LIST_UNTYPED. Can cause errors on switch statements */
+enum ListType{LIST_TREE, LIST_STMT, LIST_EXPR, LIST_STRING,
+              LIST_UNTYPED};
 
 /* Our linked list of tree type nodes */
 typedef struct List ListNode_t;
@@ -30,12 +32,15 @@ ListNode_t *CreateListNode(void *new_obj, enum ListType type);
 ListNode_t *PushListNodeFront(ListNode_t *head_node, ListNode_t *new_head);
 
 /* This is a traditional array style */
-/* Not efficient, recommend alternative structuring
+/* TODO: Make more efficient */
 /* Returns the head node */
 ListNode_t *PushListNodeBack(ListNode_t *head_node, ListNode_t *new_node);
 
 /* Inserting a node given the previous node */
 void InsertListNode(ListNode_t *prev, ListNode_t *new_node);
+
+/* Pops the top of the list */
+ListNode_t *PopListHeadNode(ListNode_t *head);
 
 /* Returns pointer to the next node */
 ListNode_t *DeleteListNode(ListNode_t *node, ListNode_t *prev);

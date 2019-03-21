@@ -10,11 +10,13 @@
 #include "ParseTree/tree.h"
 #include "ParseTree/tree_types.h"
 #include "List/List.h"
-#include "LexAndYacc/IdFifo.h"
 #include "LexAndYacc/y.tab.h"
 
 extern FILE *yyin;
 extern int yyparse();
+
+/* Initializes parser globals */
+void InitParser();
 
 int ParsePascal(char *file)
 {
@@ -31,15 +33,20 @@ int ParsePascal(char *file)
     else
         file_to_parse = NULL;
 
-    line_num = 1;
-    col_num = 1;
-    parse_tree = NULL;
-    id_fifo = NULL;
+    InitParser();
     yyparse();
-
 
     #ifdef DEBUG_BISON
         if(parse_tree != NULL)
             tree_print(parse_tree, stderr, 0);
     #endif
+    destroy_tree(parse_tree);
+    parse_tree = NULL;
+}
+
+void InitParser()
+{
+    line_num = 1;
+    col_num = 1;
+    parse_tree = NULL;
 }

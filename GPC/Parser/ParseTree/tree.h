@@ -41,12 +41,15 @@ Tree_t *mk_program(char *id, ListNode_t *args, ListNode_t *var_decl,
 Tree_t *mk_procedure(char *id, ListNode_t *args, ListNode_t *var_decl,
     ListNode_t *subprograms, struct Statement *compound_statement);
 
+Tree_t *mk_function(char *id, ListNode_t *args, ListNode_t *var_decl,
+    ListNode_t *subprograms, struct Statement *compound_statement, int return_type);
+
 Tree_t *mk_vardecl(ListNode_t *ids, int type);
 
 Tree_t *mk_arraydecl(ListNode_t *ids, int type, int start, int end);
 
 /* Statement routines */
-struct Statement *mk_varassign(char *var, struct Expression *expr);
+struct Statement *mk_varassign(struct Expression *var, struct Expression *expr);
 
 struct Statement *mk_procedurecall(char *id, ListNode_t *expr_args);
 
@@ -68,9 +71,9 @@ struct Expression *mk_relop(int type, struct Expression *left, struct Expression
 
 struct Expression *mk_signterm(struct Expression *sign_term);
 
-struct Expression *mk_addop(struct Expression *left, struct Expression *right);
+struct Expression *mk_addop(int type, struct Expression *left, struct Expression *right);
 
-struct Expression *mk_mulop(struct Expression *left, struct Expression *right);
+struct Expression *mk_mulop(int type, struct Expression *left, struct Expression *right);
 
 struct Expression *mk_varid(char *id);
 
@@ -119,6 +122,7 @@ typedef struct Tree
         } subprogram_data;
 
         /* A variable declaration */
+        /* Also used for variable arguments */
         struct Var
         {
             ListNode_t *ids;
@@ -126,6 +130,7 @@ typedef struct Tree
         } var_decl_data;
 
         /* An array declaration */
+        /* Also used for array arguments */
         struct Array
         {
             ListNode_t *ids;

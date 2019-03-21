@@ -24,7 +24,7 @@ struct Statement
         /* Variable assignment */
         struct VarAssign
         {
-            char *var;
+            struct Expression *var;
             struct Expression *expr;
         } var_assign_data;
 
@@ -91,7 +91,7 @@ struct Expression
         /* ADDOP */
         struct Addop
         {
-            int type;
+            int addop_type;
 
             struct Expression *left_expr;
             struct Expression *right_term;
@@ -100,7 +100,7 @@ struct Expression
         /* MULOP */
         struct Mulop
         {
-            int type;
+            int mulop_type;
 
             struct Expression *left_term;
             struct Expression *right_factor;

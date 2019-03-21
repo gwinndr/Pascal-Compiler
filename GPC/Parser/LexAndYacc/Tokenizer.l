@@ -5,7 +5,6 @@
     #include "../ParseTree/tree.h"
     #include "../ParseTree/tree_types.h"
     #include "../List/List.h"
-    #include "IdFifo.h"
     #include "y.tab.h"
 %}
 
@@ -99,7 +98,6 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[DOTDOT] ");
     #endif
-
     return DOTDOT;
 }
 
@@ -280,6 +278,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
         fprintf(stderr, "[INT_NUM:%d] ", atoi(yytext));
     #endif
     yylval.i_val = atoi(yytext);
+
     return INT_NUM;
 }
 
@@ -295,11 +294,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[ID:%s] ", yytext);
     #endif
-    if(id_fifo == NULL)
-        id_fifo = CreateListNode(strdup(yytext), LIST_STRING);
-    else
-        id_fifo = PushListNodeFront(id_fifo, CreateListNode(strdup(yytext), LIST_STRING));
-
+    yylval.id = strdup(yytext);
     return ID;
 }
 

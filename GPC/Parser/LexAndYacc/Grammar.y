@@ -8,7 +8,6 @@
     #include "../ParseTree/tree.h"
     #include "../ParseTree/tree_types.h"
     #include "../List/List.h"
-    #include "IdFifo.h"
     #include "y.tab.h"
 
     /*extern FILE *yyin;*/
@@ -37,13 +36,34 @@
         int end;
     } type_s;
 
+    /* For Subprogram Headers */
+    struct SubprogramHead
+    {
+        int sub_type;
+
+        char *id;
+        ListNode_t *args;
+        int return_type; /* -1 if procedure */
+    } subprogram_head_s;
+
+    /* For the for_assign rule */
+    struct ForAssign
+    {
+        int assign_type;
+        union for_assign_bison
+        {
+            struct Statement *stmt;
+            struct Expression *expr;
+        } for_assign_bison_union;
+    } for_assign_bison;
+
     /* Tree pointers */
     Tree_t *tree;
     struct Statement *stmt;
     struct Expression *expr;
 
-    /* FIFO List */
-    ListNode_t *fifo_list;
+    /* List */
+    ListNode_t *list;
 }
 
 /* Token keywords */
@@ -89,48 +109,104 @@
 %token<op_val> STAR SLASH AND
 %token PAREN
 
+/* Extra tokens, DO NOT USE IN GRAMMAR RULES! */
+%token VAR_ASSIGN;
+%token VAR;
+
 /* Easy fix for the dangling else (borrowed from "lex and yacc" [Levine et al.]) */
 %nonassoc THEN
 %nonassoc ELSE
 
 /* TYPES FOR THE GRAMMAR */
-%type<fifo_list> identifier_list
-%type<fifo_list> declarations
-%type<fifo_list> subprogram_declarations
+%type<list> identifier_list
+%type<list> declarations
+%type<list> subprogram_declarations
 %type<stmt> compound_statement
 
 %type<type_s> type
 %type<type_s> array_range
-%type<i_val> array_end
 %type<i_val> standard_type
+
+%type<tree> subprogram_declaration
+%type<subprogram_head_s> subprogram_head
+%type<list> arguments
+%type<list> parameter_list
+
+%type<list> optional_statements
+%type<list> statement_list
+%type<stmt> statement
+%type<stmt> variable_assignment
+%type<stmt> procedure_statement
+%type<stmt> if_statement
+%type<for_assign_bison> for_assign
+
+%type<expr> variable;
+%type<expr> relop_expression
+%type<expr> relop_or
+%type<expr> relop_and
+%type<expr> relop_paren
+%type<expr> relop_expression_single
+
+%type<list> expression_list
+%type<expr> expression
+%type<expr> term
+%type<expr> factor
+%type<op_val> sign
+
+/* Rules to extract union values */
+%type<id> ident
+%type<i_val> int_num
+%type<f_val> real_num
+%type<op_val> relop
+%type<op_val> addop
+%type<op_val> mulop
 
 %%
 
 program
-    : PROGRAM ID '(' identifier_list ')' ';'
+    : PROGRAM ident '(' identifier_list ')' ';'
      declarations
      subprogram_declarations
      compound_statement
      '.'
      END_OF_FILE
      {
-         /*$$ = mk_program(yylval.id, $4, $7, $8, $9);*/
-         parse_tree = mk_program((char *)id_fifo->cur, $4, $7, NULL, mk_compoundstatement(NULL));
-         id_fifo = DeleteListNode(id_fifo, NULL);
+         parse_tree = mk_program($2, $4, $7, $8, $9);
          return -1;
      }
     ;
 
+ident
+    : ID { $$ = yylval.id; }
+    ;
+
+int_num
+    : INT_NUM {$$ = yylval.i_val;}
+    ;
+
+real_num
+    : REAL_NUM {$$ = yylval.f_val;}
+    ;
+
+relop
+    : RELOP { $$ = yylval.op_val;}
+    ;
+
+addop
+    : ADDOP {$$ = yylval.op_val;}
+    ;
+
+mulop
+    : MULOP {$$ = yylval.op_val;}
+
 identifier_list
-    : ID
+    : ident
         {
-            $$ = CreateListNode((char *)id_fifo->cur, LIST_STRING);
-            id_fifo = DeleteListNode(id_fifo, NULL);
+            $$ = CreateListNode($1, LIST_STRING);
         }
-    | identifier_list ',' ID
+    | identifier_list ',' ident
         {
-            $$ = PushListNodeBack($1, CreateListNode((char *)id_fifo->cur, LIST_STRING));
-            id_fifo = DeleteListNode(id_fifo, NULL);
+            $$ = PushListNodeBack($1, CreateListNode($3, LIST_STRING));
         }
     ;
 
@@ -157,26 +233,14 @@ type
             $$.type = SINGLE;
             $$.actual_type = $1;
         }
-    | ARRAY '[' array_range ']' OF standard_type
+    | ARRAY '[' int_num DOTDOT int_num ']' OF standard_type
         {
             $$.type = ARRAY;
-            $$.actual_type = $6;
-            $$.start = $3.start;
-            $$.end = $3.end;
+            $$.actual_type = $8;
+            $$.start = $3;
+            $$.end = $5;
         }
 
-    ;
-
-/* Duct tape for the union */
-array_range
-    : INT_NUM DOTDOT array_end
-        {
-            $$.start = yylval.i_val;
-            $$.end = $3;
-        }
-    ;
-array_end
-    : INT_NUM {$$ = yylval.i_val;}
     ;
 
 standard_type
@@ -186,7 +250,13 @@ standard_type
 
 subprogram_declarations
     : subprogram_declarations subprogram_declaration ';'
-    | /* empty */
+        {
+            if($1 == NULL)
+                $$ = CreateListNode($2, LIST_TREE);
+            else
+                $$ = PushListNodeBack($1, CreateListNode($2, LIST_TREE));
+        }
+    | /* empty */ {$$ = NULL;}
     ;
 
 subprogram_declaration
@@ -194,66 +264,163 @@ subprogram_declaration
     declarations
     subprogram_declarations
     compound_statement
+        {
+            if($1.sub_type == PROCEDURE)
+                $$ = mk_procedure($1.id, $1.args, $2, $3, $4);
+            else
+                $$ = mk_function($1.id, $1.args, $2, $3, $4, $1.return_type);
+        }
     ;
 
 subprogram_head
-    : FUNCTION ID arguments ':' standard_type ';'
-    | PROCEDURE ID arguments ';'
+    : FUNCTION ident arguments ':' standard_type ';'
+        {
+            $$.sub_type = FUNCTION;
+            $$.args = $3;
+            $$.return_type = $5;
+
+            $$.id = $2;
+        }
+    | PROCEDURE ident arguments ';'
+        {
+            $$.sub_type = PROCEDURE;
+            $$.args = $3;
+            $$.return_type = -1;
+
+            $$.id = $2;
+        }
     ;
 
 arguments
-    : '(' parameter_list ')'
-    | /* empty */
+    : '(' parameter_list ')' {$$ = $2;}
+    | /* empty */ {$$ = NULL;}
     ;
 
 parameter_list
     : identifier_list ':' type
+        {
+            Tree_t *tree;
+            if($3.type == ARRAY)
+                tree = mk_arraydecl($1, $3.actual_type, $3.start, $3.end);
+            else
+                tree = mk_vardecl($1, $3.actual_type);
+
+            $$ = CreateListNode(tree, LIST_TREE);
+        }
     | parameter_list ';' identifier_list ':' type
+        {
+            Tree_t *tree;
+            if($5.type == ARRAY)
+                tree = mk_arraydecl($3, $5.actual_type, $5.start, $5.end);
+            else
+                tree = mk_vardecl($3, $5.actual_type);
+
+            $$ = PushListNodeBack($1, CreateListNode(tree, LIST_TREE));
+        }
     ;
 
 compound_statement
     : BBEGIN optional_statements END
+        {
+            $$ = mk_compoundstatement($2);
+        }
     ;
 
 optional_statements
-    : statement_list
-    | /* empty */
+    : statement_list {$$ = $1;}
+    | /* empty */ {$$ = NULL;}
     ;
 
 statement_list
     : statement
+        {
+            $$ = CreateListNode($1, LIST_STMT);
+        }
     | statement_list ';' statement
+        {
+            $$ = PushListNodeBack($1, CreateListNode($3, LIST_STMT));
+        }
     ;
 
 statement
     : variable_assignment
+        {
+            $$ = $1;
+        }
     | procedure_statement
+        {
+            $$ = $1;
+        }
     | compound_statement
+        {
+            $$ = $1;
+        }
     | if_statement
+        {
+            $$ = $1;
+        }
     | WHILE relop_expression DO statement
+        {
+            $$ = mk_while($2, $4);
+        }
     | FOR for_assign TO expression DO statement
+        {
+            if($2.assign_type == VAR_ASSIGN)
+                $$ = mk_forassign($2.for_assign_bison_union.stmt, $4, $6);
+            else
+                $$ = mk_forvar($2.for_assign_bison_union.expr, $4, $6);
+        }
     ;
 
 /* Dangling else solution is in the token section */
 if_statement
     : IF relop_expression THEN statement
+        {
+            $$ = mk_ifthen($2, $4, NULL);
+        }
     | IF relop_expression THEN statement ELSE statement
+        {
+            $$ = mk_ifthen($2, $4, $6);
+        }
 
 variable_assignment
     : variable ASSIGNOP expression
+        {
+            $$ = mk_varassign($1, $3);
+        }
 
 for_assign
     : variable_assignment
+        {
+            $$.assign_type = VAR_ASSIGN;
+            $$.for_assign_bison_union.stmt = $1;
+        }
     | variable
+        {
+            $$.assign_type = VAR;
+            $$.for_assign_bison_union.expr = $1;
+        }
 
 variable
-    : ID
-    | ID '[' expression ']'
+    : ident
+        {
+            $$ = mk_varid($1);
+        }
+    | ident '[' expression ']'
+        {
+            $$ = mk_arrayaccess($1, $3);
+        }
     ;
 
 procedure_statement
-    : ID
-    | ID '(' expression_list ')'
+    : ident
+        {
+            $$ = mk_procedurecall($1, NULL);
+        }
+    | ident '(' expression_list ')'
+        {
+            $$ = mk_procedurecall($1, $3);
+        }
     ;
 
 /* RELATIONAL_EXPRESSIONS */
@@ -261,53 +428,102 @@ procedure_statement
 /* Not has the lowest precedence */
 relop_expression
     : NOT relop_expression
-    | relop_or
+        {
+            $$ = mk_relop(NOT, $2, NULL);
+        }
+    | relop_or {$$ = $1;}
+    ;
 
 relop_or
     : relop_or OR relop_and
-    | relop_and
+        {
+            $$ = mk_relop(OR, $1, $3);
+        }
+    | relop_and {$$ = $1;}
+    ;
 
 relop_and
     : relop_and AND relop_paren
-    | relop_paren
+        {
+            $$ = mk_relop(AND, $1, $3);
+        }
+    | relop_paren {$$ = $1;}
+    ;
 
 relop_paren
-    : '(' relop_expression ')'
-    | relop_expression_single
+    : '(' relop_expression ')' {$$ = $2;}
+    | relop_expression_single {$$ = $1;}
+    ;
 
 relop_expression_single
-    : expression RELOP expression
+    : expression relop expression
+        {
+            $$ = mk_relop($2, $1, $3);
+        }
+    ;
 
 /* END RELATIONAL_EXPRESSIONS */
 
 expression_list
     : expression
+        {
+            $$ = CreateListNode($1, LIST_EXPR);
+        }
     | expression_list ',' expression
+        {
+            $$ = PushListNodeBack($1, CreateListNode($3, LIST_EXPR));
+        }
     ;
 
 expression
-    : term
+    : term {$$ = $1;}
     | sign term
-    | expression ADDOP term
+        {
+            $$ = mk_signterm($2);
+        }
+    | expression addop term
+        {
+            $$ = mk_addop($2, $1, $3);
+        }
     ;
 
 term
-    : factor
-    | term MULOP factor
+    : factor {$$ = $1;}
+    | term mulop factor
+        {
+            $$ = mk_mulop($2, $1, $3);
+        }
     ;
 
 factor
-    : ID
-    | ID '[' expression ']'
-    | ID '(' expression_list ')'
-    | INT_NUM
-    | REAL_NUM
+    : ident
+        {
+            $$ = mk_varid($1);
+        }
+    | ident '[' expression ']'
+        {
+            $$ = mk_arrayaccess($1, $3);
+        }
+    | ident '(' expression_list ')'
+        {
+            $$ = mk_functioncall($1, $3);
+        }
+    | int_num
+        {
+            $$ = mk_inum($1);
+        }
+    | real_num
+        {
+            $$ = mk_rnum($1);
+        }
     | '(' expression ')'
+        {
+            $$ = $2;
+        }
     ;
 
 sign
-    : '+'
-    | '-'
+    : '-'
     ;
 
 %%

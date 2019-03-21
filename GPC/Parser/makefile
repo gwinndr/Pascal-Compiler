@@ -34,6 +34,12 @@ parser: $(ALL_OBJS) ParsePascal.o
 ParsePascal.o: $(PARSER_OBJS) $(TREE_OBJS) ParsePascal.h ParsePascal.c
 	$(CC) $(CCFLAGS) -DDEBUG_BISON -c ParsePascal.c
 
+List/List.o:
+	$(CC) $(CCFLAGS) -c List/List.c
+
+$(TREE_DIR)/tree.o:
+	$(CC) $(CCFLAGS) -c $(TREE_DIR)/tree.c
+
 lexAndYacc:
 	cd $(GRAMMAR_DIR) && $(MAKE)
 

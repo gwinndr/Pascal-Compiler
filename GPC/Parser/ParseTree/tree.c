@@ -59,12 +59,14 @@ void tree_print(Tree_t *tree, FILE *f, int num_indent)
         case TREE_PROGRAM_TYPE:
           assert(tree->tree_data.program_data.program_id != NULL);
           fprintf(f, "[PROGRAM:%s]\n", tree->tree_data.program_data.program_id);
+          ++num_indent;
+
           print_indent(f, num_indent);
           fprintf(f, "[ARGS]:\n");
           list_print(tree->tree_data.program_data.args_char, f, num_indent+1);
 
           print_indent(f, num_indent);
-          fprintf(f, "[VARDECL]:\n");
+          fprintf(f, "[VAR_DECLS]:\n");
           list_print(tree->tree_data.program_data.var_declaration, f, num_indent+1);
 
           print_indent(f, num_indent);
@@ -93,13 +95,14 @@ void tree_print(Tree_t *tree, FILE *f, int num_indent)
                   fprintf(stderr, "BAD TYPE IN TREE_SUBPROGRAM!\n");
                   exit(1);
           }
+          ++num_indent;
 
           print_indent(f, num_indent);
           fprintf(f, "[ARGS]:\n");
           list_print(tree->tree_data.subprogram_data.args_var, f, num_indent+1);
 
           print_indent(f, num_indent);
-          fprintf(f, "[VARDECL]:\n");
+          fprintf(f, "[VAR_DECLS]:\n");
           list_print(tree->tree_data.subprogram_data.declarations, f, num_indent+1);
 
           print_indent(f, num_indent);
@@ -107,7 +110,7 @@ void tree_print(Tree_t *tree, FILE *f, int num_indent)
           list_print(tree->tree_data.subprogram_data.subprograms, f, num_indent+1);
 
           print_indent(f, num_indent);
-          fprintf(f, "[SUBPROGRAMS]:\n");
+          fprintf(f, "[BODY]:\n");
           stmt_print(tree->tree_data.subprogram_data.statement_list, f, num_indent+1);
           break;
 
@@ -116,13 +119,13 @@ void tree_print(Tree_t *tree, FILE *f, int num_indent)
           list_print(tree->tree_data.var_decl_data.ids, f, num_indent+1);
           break;
 
-          case TREE_ARR_DECL:
-            fprintf(f, "[ARRDECL of type %d in range(%d, %d)]\n",
-                tree->tree_data.arr_decl_data.type, tree->tree_data.arr_decl_data.s_range,
-                tree->tree_data.arr_decl_data.e_range);
+        case TREE_ARR_DECL:
+          fprintf(f, "[ARRDECL of type %d in range(%d, %d)]\n",
+            tree->tree_data.arr_decl_data.type, tree->tree_data.arr_decl_data.s_range,
+            tree->tree_data.arr_decl_data.e_range);
 
-            list_print(tree->tree_data.var_decl_data.ids, f, num_indent+1);
-            break;
+          list_print(tree->tree_data.var_decl_data.ids, f, num_indent+1);
+          break;
 
         default:
         fprintf(stderr, "BAD TYPE IN tree_print!\n");
@@ -136,7 +139,13 @@ void stmt_print(struct Statement *stmt, FILE *f, int num_indent)
     switch(stmt->type)
     {
         case STMT_VAR_ASSIGN:
-          fprintf(f, "[VARASSIGN:%s]:\n", stmt->stmt_data.var_assign_data.var);
+          fprintf(f, "[VARASSIGN]:\n");
+          ++num_indent;
+
+          print_indent(f, num_indent);
+          fprintf(f, "[VAR]:\n");
+          expr_print(stmt->stmt_data.var_assign_data.var, f, num_indent+1);
+
           print_indent(f, num_indent);
           fprintf(f, "[EXPR]:\n");
           expr_print(stmt->stmt_data.var_assign_data.expr, f, num_indent+1);
@@ -144,6 +153,8 @@ void stmt_print(struct Statement *stmt, FILE *f, int num_indent)
 
         case STMT_PROCEDURE_CALL:
           fprintf(f, "[PROCEDURE_CALL:%s]:\n", stmt->stmt_data.procedure_call_data.id);
+          ++num_indent;
+
           print_indent(f, num_indent);
           fprintf(f, "[ARGS]:\n");
           list_print(stmt->stmt_data.procedure_call_data.expr_args, f, num_indent+1);
@@ -216,6 +227,7 @@ void expr_print(struct Expression *expr, FILE *f, int num_indent)
     {
         case EXPR_RELOP:
           fprintf(f, "[RELOP:%d]:\n", expr->expr_data.relop_data.type);
+          ++num_indent;
 
           print_indent(f, num_indent);
           fprintf(f, "[LEFT]:\n");
@@ -232,7 +244,8 @@ void expr_print(struct Expression *expr, FILE *f, int num_indent)
           break;
 
         case EXPR_ADDOP:
-          fprintf(f, "[ADDOP:%d]:\n", expr->expr_data.addop_data.type);
+          fprintf(f, "[ADDOP:%d]:\n", expr->expr_data.addop_data.addop_type);
+          ++num_indent;
 
           print_indent(f, num_indent);
           fprintf(f, "[LEFT]:\n");
@@ -244,7 +257,8 @@ void expr_print(struct Expression *expr, FILE *f, int num_indent)
           break;
 
         case EXPR_MULOP:
-          fprintf(f, "[MULOP:%d]:\n", expr->expr_data.mulop_data.type);
+          fprintf(f, "[MULOP:%d]:\n", expr->expr_data.mulop_data.mulop_type);
+          ++num_indent;
 
           print_indent(f, num_indent);
           fprintf(f, "[LEFT]:\n");
@@ -261,6 +275,7 @@ void expr_print(struct Expression *expr, FILE *f, int num_indent)
 
         case EXPR_ARRAY_ACCESS:
           fprintf(f, "[ARRAY_ACC:%s]\n", expr->expr_data.array_access_data.id);
+          ++num_indent;
 
           print_indent(f, num_indent);
           fprintf(f, "[INDEX]:\n");
@@ -269,9 +284,10 @@ void expr_print(struct Expression *expr, FILE *f, int num_indent)
 
         case EXPR_FUNCTION_CALL:
           fprintf(f, "[FUNC_CALL:%s]:\n", expr->expr_data.function_call_data.id);
+          ++num_indent;
 
           print_indent(f, num_indent);
-          fprintf(f, "[ARGS]:");
+          fprintf(f, "[ARGS]:\n");
           list_print(expr->expr_data.function_call_data.args_expr, f, num_indent+1);
           break;
 
@@ -293,12 +309,13 @@ void expr_print(struct Expression *expr, FILE *f, int num_indent)
 /* WARNING: Also frees all c strings and other such types */
 void destroy_list(ListNode_t *list)
 {
-    ListNode_t *cur;
+    ListNode_t *cur, *prev;
     if(list != NULL)
     {
         cur = list;
         while(cur != NULL)
         {
+            assert(cur->cur != NULL);
             switch(cur->type)
             {
                 case LIST_TREE:
@@ -314,10 +331,12 @@ void destroy_list(ListNode_t *list)
                     free((char *)cur->cur);
                     break;
                 default:
-                    fprintf(stderr, "BAD TYPE IN destroy_list!\n");
+                    fprintf(stderr, "BAD TYPE IN destroy_list [%d]!\n", cur->type);
                     exit(1);
             }
-            free(cur);
+            prev = cur;
+            cur = cur->next;
+            free(prev);
         }
     }
 }
@@ -328,7 +347,6 @@ void destroy_tree(Tree_t *tree)
     {
         case TREE_PROGRAM_TYPE:
           free(tree->tree_data.program_data.program_id);
-
           destroy_list(tree->tree_data.program_data.args_char);
 
           destroy_list(tree->tree_data.program_data.var_declaration);
@@ -370,7 +388,7 @@ void destroy_stmt(struct Statement *stmt)
     switch(stmt->type)
     {
         case STMT_VAR_ASSIGN:
-          free(stmt->stmt_data.var_assign_data.var);
+          destroy_expr(stmt->stmt_data.var_assign_data.var);
           destroy_expr(stmt->stmt_data.var_assign_data.expr);
           break;
 
@@ -508,6 +526,24 @@ Tree_t *mk_procedure(char *id, ListNode_t *args, ListNode_t *var_decl,
     return new_tree;
 }
 
+Tree_t *mk_function(char *id, ListNode_t *args, ListNode_t *var_decl,
+    ListNode_t *subprograms, struct Statement *compound_statement, int return_type)
+{
+    Tree_t *new_tree;
+    new_tree = (Tree_t *)malloc(sizeof(Tree_t));
+
+    new_tree->type = TREE_SUBPROGRAM;
+    new_tree->tree_data.subprogram_data.sub_type = TREE_SUBPROGRAM_FUNC;
+    new_tree->tree_data.subprogram_data.id = id;
+    new_tree->tree_data.subprogram_data.args_var = args;
+    new_tree->tree_data.subprogram_data.return_type = return_type;
+    new_tree->tree_data.subprogram_data.declarations = var_decl;
+    new_tree->tree_data.subprogram_data.subprograms = subprograms;
+    new_tree->tree_data.subprogram_data.statement_list = compound_statement;
+
+    return new_tree;
+}
+
 /*enum TreeType{TREE_PROGRAM_TYPE, TREE_SUBPROGRAM, TREE_VAR_DECL, TREE_STATEMENT_TYPE};*/
 
 Tree_t *mk_vardecl(ListNode_t *ids, int type)
@@ -538,7 +574,7 @@ Tree_t *mk_arraydecl(ListNode_t *ids, int type, int start, int end)
 
 
 /************** Statement routines **************/
-struct Statement *mk_varassign(char *var, struct Expression *expr)
+struct Statement *mk_varassign(struct Expression *var, struct Expression *expr)
 {
     struct Statement *new_stmt;
     new_stmt = (struct Statement *)malloc(sizeof(struct Statement));
@@ -658,24 +694,26 @@ struct Expression *mk_signterm(struct Expression *sign_term)
     return new_expr;
 }
 
-struct Expression *mk_addop(struct Expression *left, struct Expression *right)
+struct Expression *mk_addop(int type, struct Expression *left, struct Expression *right)
 {
     struct Expression *new_expr;
     new_expr = (struct Expression *)malloc(sizeof(struct Expression));
 
     new_expr->type = EXPR_ADDOP;
+    new_expr->expr_data.addop_data.addop_type = type;
     new_expr->expr_data.addop_data.left_expr = left;
     new_expr->expr_data.addop_data.right_term = right;
 
     return new_expr;
 }
 
-struct Expression *mk_mulop(struct Expression *left, struct Expression *right)
+struct Expression *mk_mulop(int type, struct Expression *left, struct Expression *right)
 {
     struct Expression *new_expr;
     new_expr = (struct Expression *)malloc(sizeof(struct Expression));
 
     new_expr->type = EXPR_MULOP;
+    new_expr->expr_data.mulop_data.mulop_type = type;
     new_expr->expr_data.mulop_data.left_term = left;
     new_expr->expr_data.mulop_data.right_factor = right;
 

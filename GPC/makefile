@@ -12,7 +12,7 @@ CCFLAGS = $(FLAGS) $(OPTIMIZE)
 # Object files to build
 GPC_OBJS = main.o
 PARSER_OBJS = $(PARSER_DIR)/ParsePascal.o
-TREE_OBJS = $(PARSER_DIR)/List/List.o $(TREE_DIR)/tree.o
+TREE_OBJS = $(PARSER_DIR)/List.o $(PARSER_DIR)/tree.o
 GRAMMAR_OBJS = $(GRAMMAR_DIR)/lex.yy.o $(GRAMMAR_DIR)/y.tab.o
 ALL_OBJS = $(GPC_OBJS) $(GRAMMAR_OBJS) $(PARSER_OBJS) $(TREE_OBJS)
 
