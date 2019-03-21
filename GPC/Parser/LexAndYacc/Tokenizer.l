@@ -2,6 +2,10 @@
     #include <stdio.h>
     #include <stdlib.h>
     #include "../ErrVars.h"
+    #include "../ParseTree/tree.h"
+    #include "../ParseTree/tree_types.h"
+    #include "../List/List.h"
+    #include "IdFifo.h"
     #include "y.tab.h"
 %}
 
@@ -148,6 +152,13 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     return DO;
 }
 
+"while" {
+    #ifdef DEBUG_FLEX
+        fprintf(stderr, "[WHILE] ");
+    #endif
+    return WHILE;
+}
+
 ":="   {
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[ASSIGNOP] ");
@@ -159,6 +170,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[RELOP:%s] ", yytext);
     #endif
+    yylval.op_val = GT;
     return RELOP;
 }
 
@@ -166,6 +178,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[RELOP:%s] ", yytext);
     #endif
+    yylval.op_val = GE;
     return RELOP;
 }
 
@@ -173,6 +186,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[RELOP:%s] ", yytext);
     #endif
+    yylval.op_val = LT;
     return RELOP;
 }
 
@@ -180,6 +194,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[RELOP:%s] ", yytext);
     #endif
+    yylval.op_val = LE;
     return RELOP;
 }
 
@@ -187,6 +202,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[RELOP:%s] ", yytext);
     #endif
+    yylval.op_val = EQ;
     return RELOP;
 }
 
@@ -194,6 +210,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[RELOP:%s] ", yytext);
     #endif
+    yylval.op_val = NE;
     return RELOP;
 }
 
@@ -215,6 +232,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[MULOP:%s] ", yytext);
     #endif
+    yylval.op_val = STAR;
     return MULOP;
 }
 
@@ -222,6 +240,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[MULOP:%s] ", yytext);
     #endif
+    yylval.op_val = SLASH;
     return MULOP;
 }
 
@@ -229,6 +248,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[ADDOP:%s] ", yytext);
     #endif
+    yylval.op_val = PLUS;
     return ADDOP;
 }
 
@@ -236,6 +256,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[ADDOP:%s] ", yytext);
     #endif
+    yylval.op_val = MINUS;
     return ADDOP;
 }
 
@@ -258,6 +279,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[INT_NUM:%d] ", atoi(yytext));
     #endif
+    yylval.i_val = atoi(yytext);
     return INT_NUM;
 }
 
@@ -265,6 +287,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[REAL_NUM:%f] ", atof(yytext));
     #endif
+    yylval.f_val = atof(yytext);
     return REAL_NUM;
 }
 
@@ -272,6 +295,11 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[ID:%s] ", yytext);
     #endif
+    if(id_fifo == NULL)
+        id_fifo = CreateListNode(strdup(yytext), LIST_STRING);
+    else
+        id_fifo = PushListNodeFront(id_fifo, CreateListNode(strdup(yytext), LIST_STRING));
+
     return ID;
 }
 

@@ -6,7 +6,7 @@
 #ifndef TREE_TYPES_H
 #define TREE_TYPES_H
 
-#include "TreeFifoList/TreeFifoList.h"
+#include "../List/List.h"
 
 /* Enums for readability with types */
 enum StmtType{STMT_VAR_ASSIGN, STMT_PROCEDURE_CALL, STMT_COMPOUND_STATEMENT,
@@ -32,11 +32,11 @@ struct Statement
         struct ProcedureCall
         {
             char *id;
-            TreeListNode_t *expr_args;
+            ListNode_t *expr_args;
         } procedure_call_data;
 
         /* Compound Statements */
-        TreeListNode_t *compound_statement;
+        ListNode_t *compound_statement;
 
         /* IF THEN ELSE */
         struct IfThenElse
@@ -83,7 +83,7 @@ struct Expression
             /* NOTE: right subtree will be NULL when type is NOT or PAREN */
             struct Expression *left;
             struct Expression *right;
-        } relop;
+        } relop_data;
 
         /* Sign term */
         struct Expression *sign_term;
@@ -91,16 +91,20 @@ struct Expression
         /* ADDOP */
         struct Addop
         {
+            int type;
+
             struct Expression *left_expr;
             struct Expression *right_term;
-        } addop;
+        } addop_data;
 
         /* MULOP */
         struct Mulop
         {
+            int type;
+
             struct Expression *left_term;
             struct Expression *right_factor;
-        } mulop;
+        } mulop_data;
 
         /* A variable ID */
         char *id;
@@ -110,14 +114,14 @@ struct Expression
         {
             char *id;
             struct Expression *array_expr;
-        } array_access;
+        } array_access_data;
 
         /* Function call */
         struct FunctionCall
         {
             char *id;
-            TreeListNode_t *args_expr;
-        } function_call;
+            ListNode_t *args_expr;
+        } function_call_data;
 
         /* Integer number */
         int i_num;

@@ -5,6 +5,10 @@
     #include <stdio.h>
     #include <stdlib.h>
     #include "../ErrVars.h"
+    #include "../ParseTree/tree.h"
+    #include "../ParseTree/tree_types.h"
+    #include "../List/List.h"
+    #include "IdFifo.h"
     #include "y.tab.h"
 
     /*extern FILE *yyin;*/
@@ -21,6 +25,25 @@
 
     /* Identifier */
     char *id;
+
+    /* For Types */
+    struct Type
+    {
+        int type;
+
+        /* For arrays */
+        int actual_type;
+        int start;
+        int end;
+    } type_s;
+
+    /* Tree pointers */
+    Tree_t *tree;
+    struct Statement *stmt;
+    struct Expression *expr;
+
+    /* FIFO List */
+    ListNode_t *fifo_list;
 }
 
 /* Token keywords */
@@ -39,6 +62,7 @@
 
 %token ID
 %token ARRAY
+%token SINGLE
 %token OF
 %token DOTDOT
 
@@ -58,11 +82,11 @@
 /* Expression Tokens */
 %token ASSIGNOP
 %token RELOP
-%token<opval> EQ NE LT LE GT GE
+%token<op_val> EQ NE LT LE GT GE
 %token ADDOP
-%token<opval> PLUS MINUS OR
+%token<op_val> PLUS MINUS OR
 %token MULOP
-%token<opval> STAR SLASH AND
+%token<op_val> STAR SLASH AND
 %token PAREN
 
 /* Easy fix for the dangling else (borrowed from "lex and yacc" [Levine et al.]) */
@@ -70,7 +94,15 @@
 %nonassoc ELSE
 
 /* TYPES FOR THE GRAMMAR */
-%type<i_val> program
+%type<fifo_list> identifier_list
+%type<fifo_list> declarations
+%type<fifo_list> subprogram_declarations
+%type<stmt> compound_statement
+
+%type<type_s> type
+%type<type_s> array_range
+%type<i_val> array_end
+%type<i_val> standard_type
 
 %%
 
@@ -80,27 +112,76 @@ program
      subprogram_declarations
      compound_statement
      '.'
-     END_OF_FILE {return -1;}
+     END_OF_FILE
+     {
+         /*$$ = mk_program(yylval.id, $4, $7, $8, $9);*/
+         parse_tree = mk_program((char *)id_fifo->cur, $4, $7, NULL, mk_compoundstatement(NULL));
+         id_fifo = DeleteListNode(id_fifo, NULL);
+         return -1;
+     }
     ;
 
 identifier_list
     : ID
+        {
+            $$ = CreateListNode((char *)id_fifo->cur, LIST_STRING);
+            id_fifo = DeleteListNode(id_fifo, NULL);
+        }
     | identifier_list ',' ID
+        {
+            $$ = PushListNodeBack($1, CreateListNode((char *)id_fifo->cur, LIST_STRING));
+            id_fifo = DeleteListNode(id_fifo, NULL);
+        }
     ;
 
 declarations
     : declarations VARIABLE identifier_list ':' type ';'
-    | /* empty */
+        {
+            Tree_t *tree;
+            if($5.type == ARRAY)
+                tree = mk_arraydecl($3, $5.actual_type, $5.start, $5.end);
+            else
+                tree = mk_vardecl($3, $5.actual_type);
+
+            if($1 == NULL)
+                $$ = CreateListNode(tree, LIST_TREE);
+            else
+                $$ = PushListNodeBack($1, CreateListNode(tree, LIST_TREE));
+        }
+    | /* empty */ {$$ = NULL;}
     ;
 
 type
     : standard_type
-    | ARRAY '[' INT_NUM DOTDOT INT_NUM ']' OF standard_type
+        {
+            $$.type = SINGLE;
+            $$.actual_type = $1;
+        }
+    | ARRAY '[' array_range ']' OF standard_type
+        {
+            $$.type = ARRAY;
+            $$.actual_type = $6;
+            $$.start = $3.start;
+            $$.end = $3.end;
+        }
+
+    ;
+
+/* Duct tape for the union */
+array_range
+    : INT_NUM DOTDOT array_end
+        {
+            $$.start = yylval.i_val;
+            $$.end = $3;
+        }
+    ;
+array_end
+    : INT_NUM {$$ = yylval.i_val;}
     ;
 
 standard_type
-    : INT_TYPE
-    | REAL_TYPE
+    : INT_TYPE {$$ = INT_TYPE;}
+    | REAL_TYPE {$$ = REAL_TYPE;}
     ;
 
 subprogram_declarations

@@ -7,30 +7,50 @@
 
 #define LEAF NULL
 
-#include "TreeFifoList/TreeFifoList.h"
+#include "../List/List.h"
 #include "tree_types.h"
+#include <stdio.h>
 
 /* Types */
 typedef struct Tree Tree_t;
 
+/* GLOBAL TREE */
+Tree_t *parse_tree;
+
 /* WARNING: Copies are NOT made. Make sure given pointers are safe! */
 /* WARNING: Destroying the tree WILL free given pointers. Do not reference after free! */
 
+/* NOTE: tree_print and destroy_tree implicitely call stmt and expr functions */
+/* Tree printing */
+void list_print(ListNode_t *list, FILE *f, int num_indent);
+void tree_print(Tree_t *tree, FILE *f, int num_indent);
+void stmt_print(struct Statement *stmt, FILE *f, int num_indent);
+void expr_print(struct Expression *expr, FILE *f, int num_indent);
+
+/* Tree freeing */
+/* WARNING: Also frees all c strings and other such types */
+void destroy_list(ListNode_t *list);
+void destroy_tree(Tree_t *tree);
+void destroy_stmt(struct Statement *stmt);
+void destroy_expr(struct Expression *expr);
+
 /* Tree routines */
-Tree_t *mk_program(char *id, TreeListNode_t *args, TreeListNode_t *var_decl,
-    TreeListNode_t *subprograms, struct Statement *compound_statement);
+Tree_t *mk_program(char *id, ListNode_t *args, ListNode_t *var_decl,
+    ListNode_t *subprograms, struct Statement *compound_statement);
 
-Tree_t *mk_procedure(char *id, TreeListNode_t *args, TreeListNode_t *var_decl,
-    TreeListNode_t *subprograms, struct Statement *compound_statement);
+Tree_t *mk_procedure(char *id, ListNode_t *args, ListNode_t *var_decl,
+    ListNode_t *subprograms, struct Statement *compound_statement);
 
-Tree_t *mk_vardecl(char *id, int type);
+Tree_t *mk_vardecl(ListNode_t *ids, int type);
+
+Tree_t *mk_arraydecl(ListNode_t *ids, int type, int start, int end);
 
 /* Statement routines */
 struct Statement *mk_varassign(char *var, struct Expression *expr);
 
-struct Statement *mk_procedurecall(char *id, TreeListNode_t *expr_args);
+struct Statement *mk_procedurecall(char *id, ListNode_t *expr_args);
 
-struct Statement *mk_compoundstatement(TreeListNode_t *compound_statement);
+struct Statement *mk_compoundstatement(ListNode_t *compound_statement);
 
 struct Statement *mk_ifthen(struct Expression *eval_relop, struct Statement *if_stmt,
                             struct Statement *else_stmt);
@@ -56,7 +76,7 @@ struct Expression *mk_varid(char *id);
 
 struct Expression *mk_arrayaccess(char *id, struct Expression *index_expr);
 
-struct Expression *mk_functioncall(char *id, TreeListNode_t *args);
+struct Expression *mk_functioncall(char *id, ListNode_t *args);
 
 struct Expression *mk_inum(int i_num);
 
@@ -65,8 +85,8 @@ struct Expression *mk_rnum(float r_num);
 
 /******* Trees and statement types ********/
 /* Enum for readability */
-enum TreeType{TREE_PROGRAM_TYPE, TREE_SUBPROGRAM, TREE_VAR_DECL, TREE_STATEMENT_TYPE,
-              TREE_SUBPROGRAM_PROC, TREE_SUBPROGRAM_FUNC};
+enum TreeType{TREE_PROGRAM_TYPE, TREE_SUBPROGRAM, TREE_VAR_DECL, TREE_ARR_DECL,
+    TREE_STATEMENT_TYPE, TREE_SUBPROGRAM_PROC, TREE_SUBPROGRAM_FUNC};
 
 typedef struct Tree
 {
@@ -78,9 +98,9 @@ typedef struct Tree
         {
             char *program_id;
 
-            TreeListNode_t *args_char;
-            TreeListNode_t *var_declaration;
-            TreeListNode_t *subprograms;
+            ListNode_t *args_char;
+            ListNode_t *var_declaration;
+            ListNode_t *subprograms;
             struct Statement *body_statement;
         } program_data;
 
@@ -90,20 +110,30 @@ typedef struct Tree
             /* FUNCTION or PROCEDURE */
             enum TreeType sub_type;
             char *id;
-            TreeListNode_t *args_var;
+            ListNode_t *args_var;
             int return_type; /* Should be -1 for PROCEDURE */
 
-            TreeListNode_t *declarations;
-            TreeListNode_t *subprograms;
+            ListNode_t *declarations;
+            ListNode_t *subprograms;
             struct Statement *statement_list;
         } subprogram_data;
 
         /* A variable declaration */
         struct Var
         {
-            char *id;
-            int type; /* Array, int, or real */
+            ListNode_t *ids;
+            int type; /* Int, or real */
         } var_decl_data;
+
+        /* An array declaration */
+        struct Array
+        {
+            ListNode_t *ids;
+            int type; /* Int, or real */
+
+            int s_range;
+            int e_range;
+        } arr_decl_data;
 
         /* A single statement (Can be made up of multiple statements) */
         /* See "tree_types.h" for details */

@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include "ParsePascal.h"
 #include "ErrVars.h"
+#include "ParseTree/tree.h"
+#include "ParseTree/tree_types.h"
+#include "List/List.h"
+#include "LexAndYacc/IdFifo.h"
 #include "LexAndYacc/y.tab.h"
 
 extern FILE *yyin;
@@ -29,5 +33,13 @@ int ParsePascal(char *file)
 
     line_num = 1;
     col_num = 1;
+    parse_tree = NULL;
+    id_fifo = NULL;
     yyparse();
+
+
+    #ifdef DEBUG_BISON
+        if(parse_tree != NULL)
+            tree_print(parse_tree, stderr, 0);
+    #endif
 }
