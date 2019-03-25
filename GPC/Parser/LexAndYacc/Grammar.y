@@ -142,8 +142,8 @@
 
 %type<expr> variable;
 %type<expr> relop_expression
-%type<expr> relop_or
 %type<expr> relop_and
+%type<expr> relop_not
 %type<expr> relop_paren
 %type<expr> relop_expression_single
 
@@ -425,17 +425,8 @@ procedure_statement
 
 /* RELATIONAL_EXPRESSIONS */
 
-/* Not has the lowest precedence */
 relop_expression
-    : NOT relop_expression
-        {
-            $$ = mk_relop(NOT, $2, NULL);
-        }
-    | relop_or {$$ = $1;}
-    ;
-
-relop_or
-    : relop_or OR relop_and
+    : relop_expression OR relop_and
         {
             $$ = mk_relop(OR, $1, $3);
         }
@@ -446,6 +437,14 @@ relop_and
     : relop_and AND relop_paren
         {
             $$ = mk_relop(AND, $1, $3);
+        }
+    | relop_paren {$$ = $1;}
+    ;
+
+relop_not
+    : NOT relop_not
+        {
+            $$ = mk_relop(NOT, $2, NULL);
         }
     | relop_paren {$$ = $1;}
     ;
