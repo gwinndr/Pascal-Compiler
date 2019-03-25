@@ -111,12 +111,13 @@ void DestroyHashTable(HashTable_t *table)
             cur = temp;
         }
     }
+    free(table);
 }
 
 /* Prints all entries in the HashTable */
-void PrintHashTable(HashTable_t *table, FILE *f)
+void PrintHashTable(HashTable_t *table, FILE *f, int num_indent)
 {
-    int i;
+    int i, j;
     ListNode_t *list;
     HashNode_t *hash_node;
 
@@ -125,6 +126,8 @@ void PrintHashTable(HashTable_t *table, FILE *f)
         list = table->table[i];
         while(list != NULL)
         {
+            for(j = 0; j < num_indent; ++j)
+                fprintf(f, "  ");
             hash_node = (HashNode_t *)list->cur;
             fprintf(f, "ID: %s  TYPE: %d  HASH: %d\n", hash_node->id, hash_node->type, i);
 

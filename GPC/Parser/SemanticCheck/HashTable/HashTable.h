@@ -19,8 +19,8 @@ enum HashType{VAR, ARRAY};
 /* Items we put in the hash table (either normal variale, or array variable for now) */
 typedef struct HashNode
 {
-    enum HashType type;
     char *id;
+    enum HashType type;
 } HashNode_t;
 
 /* Our actual hash table */
@@ -44,7 +44,7 @@ HashNode_t *FindIdentInTable(HashTable_t *table, char *id);
 void DestroyHashTable(HashTable_t *table);
 
 /* Prints all entries in the HashTable */
-void PrintHashTable(HashTable_t *table, FILE *f);
+void PrintHashTable(HashTable_t *table, FILE *f, int num_indent);
 
 /* The well-known symbol hash function
 /* -----------------------------------------------------------------------------
