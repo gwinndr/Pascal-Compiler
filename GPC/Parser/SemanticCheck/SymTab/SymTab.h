@@ -27,9 +27,19 @@ SymTab_t *InitSymTab();
 /* Pushes a new scope onto the stack (FIFO) */
 void PushScope(SymTab_t *symtab);
 
-/* Pushes a new identifier onto the current scope (head) */
-/* HashType is VAR or ARRAY that describes the type of the given id */
-void PushIdentOntoScope(SymTab_t *symtab, char *id, enum HashType type);
+/* Pushes a new variable onto the current scope (head) */
+void PushVarOntoScope(SymTab_t *symtab, char *id);
+
+/* Pushes a new array onto the current scope (head) */
+void PushArrayOntoScope(SymTab_t *symtab, char *id);
+
+/* Pushes a new procedure onto the current scope (head) */
+/* NOTE: args can be NULL to represent no args */
+void PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args);
+
+/* Pushes a new function onto the current scope (head) */
+/* NOTE: args can be NULL to represent no args */
+void PushFunctionOntoScope(SymTab_t *symtab, char *id, ListNode_t *args);
 
 /* Searches for an identifier and returns the HashNode_t that gives the id and type information */
 /* Returns NULL if not found */

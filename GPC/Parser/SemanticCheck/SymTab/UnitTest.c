@@ -9,23 +9,34 @@ int main()
     symtab = InitSymTab();
 
     PushScope(symtab);
-    PushIdentOntoScope(symtab, "scope_0_0_v", VAR);
-    PushIdentOntoScope(symtab, "scope_0_1_a", ARRAY);
+    PushVarOntoScope(symtab, "scope_0_0_v");
+    PushArrayOntoScope(symtab, "scope_0_1_a");
 
     PushScope(symtab);
-    PushIdentOntoScope(symtab, "scope_1_0_v", VAR);
-    PushIdentOntoScope(symtab, "scope_1_1_a", ARRAY);
-    PushIdentOntoScope(symtab, "scope_1_2_a", ARRAY);
+    PushVarOntoScope(symtab, "scope_1_0_v");
+    PushArrayOntoScope(symtab, "scope_1_1_a");
+    PushArrayOntoScope(symtab, "scope_1_2_a");
 
     PushScope(symtab);
-    PushIdentOntoScope(symtab, "scope_2_0_a", ARRAY);
-    PushIdentOntoScope(symtab, "scope_2_1_v", VAR);
+    PushArrayOntoScope(symtab, "scope_2_0_a");
+    PushVarOntoScope(symtab, "scope_2_1_v");
 
     PrintSymTab(symtab, stderr, 0);
 
-    fprintf(stderr, "\n[AFTER_POP]\n\n");
+    fprintf(stderr, "[AFTER_POP]\n\n");
     PopScope(symtab);
-    PushIdentOntoScope(symtab, "scope_1_3_v", VAR);
+    PrintSymTab(symtab, stderr, 0);
+
+    PushFunctionOntoScope(symtab, "func", PushListNodeBack(
+        CreateListNode("arg1", LIST_STRING),
+        CreateListNode("arg2", LIST_STRING)
+    ));
+
+    PushProcedureOntoScope(symtab, "proc", PushListNodeBack(
+        CreateListNode("arg1", LIST_STRING),
+        CreateListNode("arg2", LIST_STRING)
+    ));
+
     PrintSymTab(symtab, stderr, 0);
 
     DestroySymTab(symtab);

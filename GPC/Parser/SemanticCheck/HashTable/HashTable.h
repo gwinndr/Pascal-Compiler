@@ -3,8 +3,8 @@
     Hash table of identifiers
     Used for scoping (semantic checking)
 
-    WARNING: Hash table will NOT free given identifier strings when destroyed
-        Remember to free given identifier strings manually
+    WARNING: Hash table will NOT free given identifier strings or args when destroyed
+        Remember to free given identifier strings and args manually
 */
 
 #ifndef HASH_TABLE_H
@@ -14,13 +14,15 @@
 #include <stdio.h>
 #include "../../List/List.h"
 
-enum HashType{VAR, ARRAY};
+enum HashType{VAR, ARRAY, PROCEDURE, FUNCTION};
 
-/* Items we put in the hash table (either normal variale, or array variable for now) */
+/* Items we put in the hash table */
 typedef struct HashNode
 {
     char *id;
     enum HashType type;
+    ListNode_t *args; /* NULL when no args (or not applicable to given type) */
+
 } HashNode_t;
 
 /* Our actual hash table */
@@ -35,7 +37,7 @@ HashTable_t *InitHashTable();
 
 /* Adds an identifier to the table */
 /* Returns 1 if successfully added, 0 if the identifier already exists */
-int AddIdentToTable(HashTable_t *table, char *id, enum HashType type);
+int AddIdentToTable(HashTable_t *table, char *id, enum HashType type, ListNode_t *args);
 
 /* Searches for the given identifier in the table. Returns NULL if not found */
 HashNode_t *FindIdentInTable(HashTable_t *table, char *id);
