@@ -7,9 +7,13 @@
 #define SEM_CHECK_H
 
 #include "../ParseTree/tree.h"
-#include "../ParseTree/tree_types.h"
 
 /* The main function for checking a tree */
-bool start_semcheck(Tree_t *parse_tree);
+/* Return values:
+    0       -> Check successful
+    -1      -> Check successful with warnings
+    >= 1    -> Check failed with n errors
+*/
+int start_semcheck(Tree_t *parse_tree);
 
 #endif

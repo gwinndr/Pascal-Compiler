@@ -124,7 +124,6 @@
 %type<stmt> compound_statement
 
 %type<type_s> type
-%type<type_s> array_range
 %type<i_val> standard_type
 
 %type<tree> subprogram_declaration
@@ -151,7 +150,6 @@
 %type<expr> expression
 %type<expr> term
 %type<expr> factor
-%type<op_val> sign
 
 /* Rules to extract union values */
 %type<id> ident
@@ -171,7 +169,7 @@ program
      '.'
      END_OF_FILE
      {
-         parse_tree = mk_program($2, $4, $7, $8, $9);
+         parse_tree = mk_program(line_num, $2, $4, $7, $8, $9);
          return -1;
      }
     ;
@@ -215,9 +213,9 @@ declarations
         {
             Tree_t *tree;
             if($5.type == ARRAY)
-                tree = mk_arraydecl($3, $5.actual_type, $5.start, $5.end);
+                tree = mk_arraydecl(line_num, $3, $5.actual_type, $5.start, $5.end);
             else
-                tree = mk_vardecl($3, $5.actual_type);
+                tree = mk_vardecl(line_num, $3, $5.actual_type);
 
             if($1 == NULL)
                 $$ = CreateListNode(tree, LIST_TREE);
@@ -266,9 +264,9 @@ subprogram_declaration
     compound_statement
         {
             if($1.sub_type == PROCEDURE)
-                $$ = mk_procedure($1.id, $1.args, $2, $3, $4);
+                $$ = mk_procedure(line_num, $1.id, $1.args, $2, $3, $4);
             else
-                $$ = mk_function($1.id, $1.args, $2, $3, $4, $1.return_type);
+                $$ = mk_function(line_num, $1.id, $1.args, $2, $3, $4, $1.return_type);
         }
     ;
 
@@ -301,9 +299,9 @@ parameter_list
         {
             Tree_t *tree;
             if($3.type == ARRAY)
-                tree = mk_arraydecl($1, $3.actual_type, $3.start, $3.end);
+                tree = mk_arraydecl(line_num, $1, $3.actual_type, $3.start, $3.end);
             else
-                tree = mk_vardecl($1, $3.actual_type);
+                tree = mk_vardecl(line_num, $1, $3.actual_type);
 
             $$ = CreateListNode(tree, LIST_TREE);
         }
@@ -311,9 +309,9 @@ parameter_list
         {
             Tree_t *tree;
             if($5.type == ARRAY)
-                tree = mk_arraydecl($3, $5.actual_type, $5.start, $5.end);
+                tree = mk_arraydecl(line_num, $3, $5.actual_type, $5.start, $5.end);
             else
-                tree = mk_vardecl($3, $5.actual_type);
+                tree = mk_vardecl(line_num, $3, $5.actual_type);
 
             $$ = PushListNodeBack($1, CreateListNode(tree, LIST_TREE));
         }
@@ -322,7 +320,7 @@ parameter_list
 compound_statement
     : BBEGIN optional_statements END
         {
-            $$ = mk_compoundstatement($2);
+            $$ = mk_compoundstatement(line_num, $2);
         }
     ;
 
@@ -361,14 +359,14 @@ statement
         }
     | WHILE relop_expression DO statement
         {
-            $$ = mk_while($2, $4);
+            $$ = mk_while(line_num, $2, $4);
         }
     | FOR for_assign TO expression DO statement
         {
             if($2.assign_type == VAR_ASSIGN)
-                $$ = mk_forassign($2.for_assign_bison_union.stmt, $4, $6);
+                $$ = mk_forassign(line_num, $2.for_assign_bison_union.stmt, $4, $6);
             else
-                $$ = mk_forvar($2.for_assign_bison_union.expr, $4, $6);
+                $$ = mk_forvar(line_num, $2.for_assign_bison_union.expr, $4, $6);
         }
     ;
 
@@ -376,17 +374,17 @@ statement
 if_statement
     : IF relop_expression THEN statement
         {
-            $$ = mk_ifthen($2, $4, NULL);
+            $$ = mk_ifthen(line_num, $2, $4, NULL);
         }
     | IF relop_expression THEN statement ELSE statement
         {
-            $$ = mk_ifthen($2, $4, $6);
+            $$ = mk_ifthen(line_num, $2, $4, $6);
         }
 
 variable_assignment
     : variable ASSIGNOP expression
         {
-            $$ = mk_varassign($1, $3);
+            $$ = mk_varassign(line_num, $1, $3);
         }
 
 for_assign
@@ -404,22 +402,22 @@ for_assign
 variable
     : ident
         {
-            $$ = mk_varid($1);
+            $$ = mk_varid(line_num, $1);
         }
     | ident '[' expression ']'
         {
-            $$ = mk_arrayaccess($1, $3);
+            $$ = mk_arrayaccess(line_num, $1, $3);
         }
     ;
 
 procedure_statement
     : ident
         {
-            $$ = mk_procedurecall($1, NULL);
+            $$ = mk_procedurecall(line_num, $1, NULL);
         }
     | ident '(' expression_list ')'
         {
-            $$ = mk_procedurecall($1, $3);
+            $$ = mk_procedurecall(line_num, $1, $3);
         }
     ;
 
@@ -428,23 +426,23 @@ procedure_statement
 relop_expression
     : relop_expression OR relop_and
         {
-            $$ = mk_relop(OR, $1, $3);
+            $$ = mk_relop(line_num, OR, $1, $3);
         }
     | relop_and {$$ = $1;}
     ;
 
 relop_and
-    : relop_and AND relop_paren
+    : relop_and AND relop_not
         {
-            $$ = mk_relop(AND, $1, $3);
+            $$ = mk_relop(line_num, AND, $1, $3);
         }
-    | relop_paren {$$ = $1;}
+    | relop_not {$$ = $1;}
     ;
 
 relop_not
     : NOT relop_not
         {
-            $$ = mk_relop(NOT, $2, NULL);
+            $$ = mk_relop(line_num, NOT, $2, NULL);
         }
     | relop_paren {$$ = $1;}
     ;
@@ -457,7 +455,7 @@ relop_paren
 relop_expression_single
     : expression relop expression
         {
-            $$ = mk_relop($2, $1, $3);
+            $$ = mk_relop(line_num, $2, $1, $3);
         }
     ;
 
@@ -478,11 +476,11 @@ expression
     : term {$$ = $1;}
     | sign term
         {
-            $$ = mk_signterm($2);
+            $$ = mk_signterm(line_num, $2);
         }
     | expression addop term
         {
-            $$ = mk_addop($2, $1, $3);
+            $$ = mk_addop(line_num, $2, $1, $3);
         }
     ;
 
@@ -490,30 +488,30 @@ term
     : factor {$$ = $1;}
     | term mulop factor
         {
-            $$ = mk_mulop($2, $1, $3);
+            $$ = mk_mulop(line_num, $2, $1, $3);
         }
     ;
 
 factor
     : ident
         {
-            $$ = mk_varid($1);
+            $$ = mk_varid(line_num, $1);
         }
     | ident '[' expression ']'
         {
-            $$ = mk_arrayaccess($1, $3);
+            $$ = mk_arrayaccess(line_num, $1, $3);
         }
     | ident '(' expression_list ')'
         {
-            $$ = mk_functioncall($1, $3);
+            $$ = mk_functioncall(line_num, $1, $3);
         }
     | int_num
         {
-            $$ = mk_inum($1);
+            $$ = mk_inum(line_num, $1);
         }
     | real_num
         {
-            $$ = mk_rnum($1);
+            $$ = mk_rnum(line_num, $1);
         }
     | '(' expression ')'
         {

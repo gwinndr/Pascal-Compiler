@@ -35,55 +35,57 @@ void destroy_stmt(struct Statement *stmt);
 void destroy_expr(struct Expression *expr);
 
 /* Tree routines */
-Tree_t *mk_program(char *id, ListNode_t *args, ListNode_t *var_decl,
+Tree_t *mk_program(int line_num, char *id, ListNode_t *args, ListNode_t *var_decl,
     ListNode_t *subprograms, struct Statement *compound_statement);
 
-Tree_t *mk_procedure(char *id, ListNode_t *args, ListNode_t *var_decl,
+Tree_t *mk_procedure(int line_num, char *id, ListNode_t *args, ListNode_t *var_decl,
     ListNode_t *subprograms, struct Statement *compound_statement);
 
-Tree_t *mk_function(char *id, ListNode_t *args, ListNode_t *var_decl,
+Tree_t *mk_function(int line_num, char *id, ListNode_t *args, ListNode_t *var_decl,
     ListNode_t *subprograms, struct Statement *compound_statement, int return_type);
 
-Tree_t *mk_vardecl(ListNode_t *ids, int type);
+Tree_t *mk_vardecl(int line_num, ListNode_t *ids, int type);
 
-Tree_t *mk_arraydecl(ListNode_t *ids, int type, int start, int end);
+Tree_t *mk_arraydecl(int line_num, ListNode_t *ids, int type, int start, int end);
 
 /* Statement routines */
-struct Statement *mk_varassign(struct Expression *var, struct Expression *expr);
+struct Statement *mk_varassign(int line_num, struct Expression *var, struct Expression *expr);
 
-struct Statement *mk_procedurecall(char *id, ListNode_t *expr_args);
+struct Statement *mk_procedurecall(int line_num, char *id, ListNode_t *expr_args);
 
-struct Statement *mk_compoundstatement(ListNode_t *compound_statement);
+struct Statement *mk_compoundstatement(int line_num, ListNode_t *compound_statement);
 
-struct Statement *mk_ifthen(struct Expression *eval_relop, struct Statement *if_stmt,
+struct Statement *mk_ifthen(int line_num, struct Expression *eval_relop, struct Statement *if_stmt,
                             struct Statement *else_stmt);
 
-struct Statement *mk_while(struct Expression *eval_relop, struct Statement *while_stmt);
+struct Statement *mk_while(int line_num, struct Expression *eval_relop,
+                            struct Statement *while_stmt);
 
-struct Statement *mk_forassign(struct Statement *for_assign, struct Expression *to,
+struct Statement *mk_forassign(int line_num, struct Statement *for_assign, struct Expression *to,
                                struct Statement *do_for);
 
-struct Statement *mk_forvar(struct Expression *for_var, struct Expression *to,
+struct Statement *mk_forvar(int line_num, struct Expression *for_var, struct Expression *to,
                               struct Statement *do_for);
 
 /* Expression routines */
-struct Expression *mk_relop(int type, struct Expression *left, struct Expression *right);
+struct Expression *mk_relop(int line_num, int type, struct Expression *left,
+                                struct Expression *right);
 
-struct Expression *mk_signterm(struct Expression *sign_term);
+struct Expression *mk_signterm(int line_num, struct Expression *sign_term);
 
-struct Expression *mk_addop(int type, struct Expression *left, struct Expression *right);
+struct Expression *mk_addop(int line_num, int type, struct Expression *left, struct Expression *right);
 
-struct Expression *mk_mulop(int type, struct Expression *left, struct Expression *right);
+struct Expression *mk_mulop(int line_num, int type, struct Expression *left, struct Expression *right);
 
-struct Expression *mk_varid(char *id);
+struct Expression *mk_varid(int line_num, char *id);
 
-struct Expression *mk_arrayaccess(char *id, struct Expression *index_expr);
+struct Expression *mk_arrayaccess(int line_num, char *id, struct Expression *index_expr);
 
-struct Expression *mk_functioncall(char *id, ListNode_t *args);
+struct Expression *mk_functioncall(int line_num, char *id, ListNode_t *args);
 
-struct Expression *mk_inum(int i_num);
+struct Expression *mk_inum(int line_num, int i_num);
 
-struct Expression *mk_rnum(float r_num);
+struct Expression *mk_rnum(int line_num, float r_num);
 
 
 /******* Trees and statement types ********/
@@ -93,6 +95,7 @@ enum TreeType{TREE_PROGRAM_TYPE, TREE_SUBPROGRAM, TREE_VAR_DECL, TREE_ARR_DECL,
 
 typedef struct Tree
 {
+    int line_num;
     int type;
     union tree_data
     {

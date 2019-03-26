@@ -18,6 +18,7 @@ enum ExprType{EXPR_RELOP, EXPR_SIGN_TERM, EXPR_ADDOP, EXPR_MULOP,
 /* A statement subtree */
 struct Statement
 {
+    int line_num;
     enum StmtType type;
     union stmt_data
     {
@@ -72,6 +73,7 @@ struct Statement
 /* An expression subtree */
 struct Expression
 {
+    int line_num;
     int type;
     union expr_data
     {
