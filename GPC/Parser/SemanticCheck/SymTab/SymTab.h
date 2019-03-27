@@ -14,7 +14,8 @@
 #include "../HashTable/HashTable.h"
 #include "../../List/List.h"
 
-/*enum VarType{HASHVAR_INTEGER, HASHVAR_REAL, HASHVAR_PROCEDURE}; <- Defined in HashTable.h*/
+/*enum VarType{HASHVAR_INTEGER, HASHVAR_REAL, HASHVAR_PROCEDURE, HASHVAR_UNTYPED};
+  Defined in HashTable.h */
 
 /* A stack of hash tables */
 typedef struct SymTab

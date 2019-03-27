@@ -15,7 +15,7 @@
 #include "../../List/List.h"
 
 enum HashType{HASHTYPE_VAR, HASHTYPE_ARRAY, HASHTYPE_PROCEDURE, HASHTYPE_FUNCTION};
-enum VarType{HASHVAR_INTEGER, HASHVAR_REAL, HASHVAR_PROCEDURE};
+enum VarType{HASHVAR_INTEGER, HASHVAR_REAL, HASHVAR_PROCEDURE, HASHVAR_UNTYPED};
 
 /* Items we put in the hash table */
 typedef struct HashNode
