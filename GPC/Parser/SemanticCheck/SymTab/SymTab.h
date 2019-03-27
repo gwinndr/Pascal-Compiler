@@ -14,6 +14,8 @@
 #include "../HashTable/HashTable.h"
 #include "../../List/List.h"
 
+/*enum VarType{HASHVAR_INTEGER, HASHVAR_REAL, HASHVAR_PROCEDURE}; <- Defined in HashTable.h*/
+
 /* A stack of hash tables */
 typedef struct SymTab
 {
@@ -28,18 +30,18 @@ SymTab_t *InitSymTab();
 void PushScope(SymTab_t *symtab);
 
 /* Pushes a new variable onto the current scope (head) */
-void PushVarOntoScope(SymTab_t *symtab, char *id);
+int PushVarOntoScope(SymTab_t *symtab, enum VarType var_type, char *id);
 
 /* Pushes a new array onto the current scope (head) */
-void PushArrayOntoScope(SymTab_t *symtab, char *id);
+int PushArrayOntoScope(SymTab_t *symtab, enum VarType var_type, char *id);
 
 /* Pushes a new procedure onto the current scope (head) */
 /* NOTE: args can be NULL to represent no args */
-void PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args);
+int PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args);
 
 /* Pushes a new function onto the current scope (head) */
 /* NOTE: args can be NULL to represent no args */
-void PushFunctionOntoScope(SymTab_t *symtab, char *id, ListNode_t *args);
+int PushFunctionOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, ListNode_t *args);
 
 /* Searches for an identifier and returns the HashNode_t that gives the id and type information */
 /* Returns NULL if not found */

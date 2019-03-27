@@ -14,13 +14,15 @@
 #include <stdio.h>
 #include "../../List/List.h"
 
-enum HashType{VAR, ARRAY, PROCEDURE, FUNCTION};
+enum HashType{HASHTYPE_VAR, HASHTYPE_ARRAY, HASHTYPE_PROCEDURE, HASHTYPE_FUNCTION};
+enum VarType{HASHVAR_INTEGER, HASHVAR_REAL, HASHVAR_PROCEDURE};
 
 /* Items we put in the hash table */
 typedef struct HashNode
 {
     char *id;
-    enum HashType type;
+    enum HashType hash_type;
+    enum VarType var_type;
     ListNode_t *args; /* NULL when no args (or not applicable to given type) */
 
 } HashNode_t;
@@ -37,7 +39,8 @@ HashTable_t *InitHashTable();
 
 /* Adds an identifier to the table */
 /* Returns 1 if successfully added, 0 if the identifier already exists */
-int AddIdentToTable(HashTable_t *table, char *id, enum HashType type, ListNode_t *args);
+int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
+    enum HashType hash_type, ListNode_t *args);
 
 /* Searches for the given identifier in the table. Returns NULL if not found */
 HashNode_t *FindIdentInTable(HashTable_t *table, char *id);

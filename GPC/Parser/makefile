@@ -12,8 +12,9 @@ CCFLAGS = $(FLAGS) $(OPTIMIZE)
 # Object files to build
 GPC_OBJS = ParsePascal.o
 TREE_OBJS = List/List.o $(TREE_DIR)/tree.o
+SEM_OBJS = SemCheck.o HashTable.o SymTab.o
 PARSER_OBJS = $(GRAMMAR_DIR)/lex.yy.o $(GRAMMAR_DIR)/y.tab.o
-ALL_OBJS = $(GPC_OBJS) $(TREE_OBJS) $(PARSER_OBJS)
+ALL_OBJS = $(GPC_OBJS) $(TREE_OBJS) $(SEM_OBJS) $(PARSER_OBJS)
 
 ######## THE MAIN BUILD RULES ###########
 release: lexAndYacc parser
@@ -36,6 +37,15 @@ ParsePascal.o: $(PARSER_OBJS) $(TREE_OBJS) ParsePascal.h ParsePascal.c
 
 List/List.o:
 	$(CC) $(CCFLAGS) -c List/List.c
+
+SemCheck.o: $(GRAMMAR_DIR)/y.tab.h SymTab.o HashTable.o
+	$(CC) $(CCFLAGS) -c SemanticCheck/SemCheck.c
+
+HashTable.o: $(GRAMMAR_DIR)/y.tab.h
+	$(CC) $(CCFLAGS) -c SemanticCheck/HashTable/HashTable.c
+
+SymTab.o: $(GRAMMAR_DIR)/y.tab.h HashTable.o
+	$(CC) $(CCFLAGS) -c SemanticCheck/SymTab/SymTab.c
 
 $(TREE_DIR)/tree.o:
 	$(CC) $(CCFLAGS) -c $(TREE_DIR)/tree.c

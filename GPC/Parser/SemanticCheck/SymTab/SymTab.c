@@ -41,7 +41,7 @@ void PushScope(SymTab_t *symtab)
 }
 
 /* Pushes a new variable onto the current scope (head) */
-void PushVarOntoScope(SymTab_t *symtab, char *id)
+int PushVarOntoScope(SymTab_t *symtab, enum VarType var_type, char *id)
 {
     assert(symtab != NULL);
     assert(symtab->stack_head != NULL);
@@ -49,11 +49,11 @@ void PushVarOntoScope(SymTab_t *symtab, char *id)
     HashTable_t *cur_hash;
 
     cur_hash = (HashTable_t *)symtab->stack_head->cur;
-    AddIdentToTable(cur_hash, id, VAR, NULL);
+    return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_VAR, NULL);
 }
 
 /* Pushes a new array onto the current scope (head) */
-void PushArrayOntoScope(SymTab_t *symtab, char *id)
+int PushArrayOntoScope(SymTab_t *symtab, enum VarType var_type, char *id)
 {
     assert(symtab != NULL);
     assert(symtab->stack_head != NULL);
@@ -61,12 +61,12 @@ void PushArrayOntoScope(SymTab_t *symtab, char *id)
     HashTable_t *cur_hash;
 
     cur_hash = (HashTable_t *)symtab->stack_head->cur;
-    AddIdentToTable(cur_hash, id, ARRAY, NULL);
+    return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_ARRAY, NULL);
 }
 
 /* Pushes a new procedure onto the current scope (head) */
 /* NOTE: args can be NULL to represent no args */
-void PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args)
+int PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args)
 {
     assert(symtab != NULL);
     assert(symtab->stack_head != NULL);
@@ -74,12 +74,12 @@ void PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args)
     HashTable_t *cur_hash;
 
     cur_hash = (HashTable_t *)symtab->stack_head->cur;
-    AddIdentToTable(cur_hash, id, PROCEDURE, args);
+    return AddIdentToTable(cur_hash, id, HASHVAR_PROCEDURE, HASHTYPE_PROCEDURE, args);
 }
 
 /* Pushes a new function onto the current scope (head) */
 /* NOTE: args can be NULL to represent no args */
-void PushFunctionOntoScope(SymTab_t *symtab, char *id, ListNode_t *args)
+int PushFunctionOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, ListNode_t *args)
 {
     assert(symtab != NULL);
     assert(symtab->stack_head != NULL);
@@ -87,7 +87,7 @@ void PushFunctionOntoScope(SymTab_t *symtab, char *id, ListNode_t *args)
     HashTable_t *cur_hash;
 
     cur_hash = (HashTable_t *)symtab->stack_head->cur;
-    AddIdentToTable(cur_hash, id, FUNCTION, args);
+    return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION, args);
 }
 
 /* Searches for an identifier and returns the HashNode_t that gives the id and type information */
