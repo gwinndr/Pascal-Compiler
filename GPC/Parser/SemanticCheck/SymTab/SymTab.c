@@ -90,6 +90,19 @@ int PushFunctionOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, Lis
     return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION, args);
 }
 
+/* Pushes a new function return type var onto the current scope (head) */
+/* NOTE: args can be NULL to represent no args */
+int PushFuncRetOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, ListNode_t *args)
+{
+    assert(symtab != NULL);
+    assert(symtab->stack_head != NULL);
+
+    HashTable_t *cur_hash;
+
+    cur_hash = (HashTable_t *)symtab->stack_head->cur;
+    return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION_RETURN, args);
+}
+
 /* Searches for an identifier and sets the hash_return that contains the id and type information */
 /* Returns -1 and sets hash_return to NULL if not found */
 /* Returns >= 0 tells what scope level it was found at */

@@ -44,6 +44,10 @@ int PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args);
 /* NOTE: args can be NULL to represent no args */
 int PushFunctionOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, ListNode_t *args);
 
+/* Pushes a new function return type var onto the current scope (head) */
+/* NOTE: args can be NULL to represent no args */
+int PushFuncRetOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, ListNode_t *args);
+
 /* Searches for an identifier and sets the hash_return that contains the id and type information */
 /* Returns -1 and sets hash_return to NULL if not found */
 /* Returns >= 0 tells what scope level it was found at */

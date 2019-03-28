@@ -209,6 +209,11 @@ int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
         func_return = PushProcedureOntoScope(symtab, subprogram->tree_data.subprogram_data.id,
                         subprogram->tree_data.subprogram_data.args_var);
 
+        /* Pushing new scope for the subprogram and allowing recursion */
+        PushScope(symtab);
+        PushProcedureOntoScope(symtab, subprogram->tree_data.subprogram_data.id,
+            subprogram->tree_data.subprogram_data.args_var);
+
         new_max_scope = max_scope_lev+1;
     }
     else
@@ -219,8 +224,15 @@ int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
         else
             var_type = HASHVAR_REAL;
 
+
         func_return = PushFunctionOntoScope(symtab, subprogram->tree_data.subprogram_data.id,
                         var_type, subprogram->tree_data.subprogram_data.args_var);
+
+        /* Pushing new scope for the subprogram and allowing recursion and return statements */
+        /* NOTE: HASHTYPE_FUNCTION_RETURN is a special type you can call and set (return stmt) */
+        PushScope(symtab);
+        PushFuncRetOntoScope(symtab, subprogram->tree_data.subprogram_data.id,
+            var_type, subprogram->tree_data.subprogram_data.args_var);
 
         new_max_scope = 0;
     }
@@ -235,9 +247,6 @@ int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
 
         return_val += func_return;
     }
-
-    /* Pushing new scope for the subprogram */
-    PushScope(symtab);
 
     /* These arguments are themselves like declarations */
     return_val += semcheck_decls(symtab, subprogram->tree_data.subprogram_data.args_var);
