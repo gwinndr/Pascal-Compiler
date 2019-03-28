@@ -90,10 +90,12 @@ int PushFunctionOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, Lis
     return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION, args);
 }
 
-/* Searches for an identifier and returns the HashNode_t that gives the id and type information */
-/* Returns NULL if not found */
-HashNode_t *FindIdent(SymTab_t *symtab, char *id)
+/* Searches for an identifier and sets the hash_return that contains the id and type information */
+/* Returns -1 and sets hash_return to NULL if not found */
+/* Returns >= 0 tells what scope level it was found at */
+int FindIdent(HashNode_t **hash_return, SymTab_t *symtab, char *id)
 {
+    int return_val = 0;
     assert(symtab != NULL);
 
     ListNode_t *cur, *next;
@@ -104,9 +106,19 @@ HashNode_t *FindIdent(SymTab_t *symtab, char *id)
     {
         hash_node = FindIdentInTable((HashTable_t *)cur->cur, id);
         if(hash_node != NULL)
-            return hash_node;
+        {
+            *hash_return = hash_node;
+            return return_val;
+        }
+
+        ++return_val;
+        cur = cur->next;
     }
-    return NULL;
+
+    *hash_return = NULL;
+    return_val = -1;
+
+    return return_val;
 }
 
 /* Pops the current scope */

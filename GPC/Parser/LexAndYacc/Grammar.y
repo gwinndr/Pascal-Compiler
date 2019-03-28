@@ -22,8 +22,23 @@
     /* Operators */
     int op_val;
 
-    /* Identifier */
+    /* Simple id without a line number */
     char *id;
+
+    /* Identifier with line number */
+    struct ident
+    {
+        char *id;
+        int line_num;
+    } ident;
+
+    /* Ident list with line numbers */
+    struct ident_list
+    {
+        ListNode_t *list;
+        int line_num;
+    } ident_list;
+
 
     /* For Types */
     struct Type
@@ -43,6 +58,7 @@
 
         char *id;
         ListNode_t *args;
+        int line_num;
         int return_type; /* -1 if procedure */
     } subprogram_head_s;
 
@@ -118,7 +134,7 @@
 %nonassoc ELSE
 
 /* TYPES FOR THE GRAMMAR */
-%type<list> identifier_list
+%type<ident_list> identifier_list
 %type<list> declarations
 %type<list> subprogram_declarations
 %type<stmt> compound_statement
@@ -152,7 +168,7 @@
 %type<expr> factor
 
 /* Rules to extract union values */
-%type<id> ident
+%type<ident> ident
 %type<i_val> int_num
 %type<f_val> real_num
 %type<op_val> relop
@@ -169,13 +185,17 @@ program
      '.'
      END_OF_FILE
      {
-         parse_tree = mk_program(line_num, $2, $4, $7, $8, $9);
+         parse_tree = mk_program($2.line_num, $2.id, $4.list, $7, $8, $9);
          return -1;
      }
     ;
 
 ident
-    : ID { $$ = yylval.id; }
+    : ID
+        {
+            $$.id = yylval.id;
+            $$.line_num = line_num;
+        }
     ;
 
 int_num
@@ -200,11 +220,13 @@ mulop
 identifier_list
     : ident
         {
-            $$ = CreateListNode($1, LIST_STRING);
+            $$.list = CreateListNode($1.id, LIST_STRING);
+            $$.line_num = $1.line_num; /* TODO: List of line nums */
         }
     | identifier_list ',' ident
         {
-            $$ = PushListNodeBack($1, CreateListNode($3, LIST_STRING));
+            $$.list = PushListNodeBack($1.list, CreateListNode($3.id, LIST_STRING));
+            $$.line_num = $1.line_num;
         }
     ;
 
@@ -213,9 +235,9 @@ declarations
         {
             Tree_t *tree;
             if($5.type == ARRAY)
-                tree = mk_arraydecl(line_num, $3, $5.actual_type, $5.start, $5.end);
+                tree = mk_arraydecl($3.line_num, $3.list, $5.actual_type, $5.start, $5.end);
             else
-                tree = mk_vardecl(line_num, $3, $5.actual_type);
+                tree = mk_vardecl($3.line_num, $3.list, $5.actual_type);
 
             if($1 == NULL)
                 $$ = CreateListNode(tree, LIST_TREE);
@@ -264,9 +286,9 @@ subprogram_declaration
     compound_statement
         {
             if($1.sub_type == PROCEDURE)
-                $$ = mk_procedure(line_num, $1.id, $1.args, $2, $3, $4);
+                $$ = mk_procedure($1.line_num, $1.id, $1.args, $2, $3, $4);
             else
-                $$ = mk_function(line_num, $1.id, $1.args, $2, $3, $4, $1.return_type);
+                $$ = mk_function($1.line_num, $1.id, $1.args, $2, $3, $4, $1.return_type);
         }
     ;
 
@@ -277,7 +299,8 @@ subprogram_head
             $$.args = $3;
             $$.return_type = $5;
 
-            $$.id = $2;
+            $$.id = $2.id;
+            $$.line_num = $2.line_num;
         }
     | PROCEDURE ident arguments ';'
         {
@@ -285,7 +308,8 @@ subprogram_head
             $$.args = $3;
             $$.return_type = -1;
 
-            $$.id = $2;
+            $$.id = $2.id;
+            $$.line_num = $2.line_num;
         }
     ;
 
@@ -299,9 +323,9 @@ parameter_list
         {
             Tree_t *tree;
             if($3.type == ARRAY)
-                tree = mk_arraydecl(line_num, $1, $3.actual_type, $3.start, $3.end);
+                tree = mk_arraydecl($1.line_num, $1.list, $3.actual_type, $3.start, $3.end);
             else
-                tree = mk_vardecl(line_num, $1, $3.actual_type);
+                tree = mk_vardecl($1.line_num, $1.list, $3.actual_type);
 
             $$ = CreateListNode(tree, LIST_TREE);
         }
@@ -309,9 +333,9 @@ parameter_list
         {
             Tree_t *tree;
             if($5.type == ARRAY)
-                tree = mk_arraydecl(line_num, $3, $5.actual_type, $5.start, $5.end);
+                tree = mk_arraydecl($3.line_num, $3.list, $5.actual_type, $5.start, $5.end);
             else
-                tree = mk_vardecl(line_num, $3, $5.actual_type);
+                tree = mk_vardecl($3.line_num, $3.list, $5.actual_type);
 
             $$ = PushListNodeBack($1, CreateListNode(tree, LIST_TREE));
         }
@@ -402,22 +426,22 @@ for_assign
 variable
     : ident
         {
-            $$ = mk_varid(line_num, $1);
+            $$ = mk_varid($1.line_num, $1.id);
         }
     | ident '[' expression ']'
         {
-            $$ = mk_arrayaccess(line_num, $1, $3);
+            $$ = mk_arrayaccess($1.line_num, $1.id, $3);
         }
     ;
 
 procedure_statement
     : ident
         {
-            $$ = mk_procedurecall(line_num, $1, NULL);
+            $$ = mk_procedurecall($1.line_num, $1.id, NULL);
         }
     | ident '(' expression_list ')'
         {
-            $$ = mk_procedurecall(line_num, $1, $3);
+            $$ = mk_procedurecall($1.line_num, $1.id, $3);
         }
     ;
 
@@ -495,15 +519,15 @@ term
 factor
     : ident
         {
-            $$ = mk_varid(line_num, $1);
+            $$ = mk_varid($1.line_num, $1.id);
         }
     | ident '[' expression ']'
         {
-            $$ = mk_arrayaccess(line_num, $1, $3);
+            $$ = mk_arrayaccess($1.line_num, $1.id, $3);
         }
     | ident '(' expression_list ')'
         {
-            $$ = mk_functioncall(line_num, $1, $3);
+            $$ = mk_functioncall($1.line_num, $1.id, $3);
         }
     | int_num
         {

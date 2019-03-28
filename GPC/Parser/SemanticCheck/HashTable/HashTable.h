@@ -38,7 +38,7 @@ typedef struct HashTable
 HashTable_t *InitHashTable();
 
 /* Adds an identifier to the table */
-/* Returns 1 if successfully added, 0 if the identifier already exists */
+/* Returns 0 if successfully added, 1 if the identifier already exists */
 int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
     enum HashType hash_type, ListNode_t *args);
 

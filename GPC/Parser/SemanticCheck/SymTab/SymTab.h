@@ -44,9 +44,10 @@ int PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args);
 /* NOTE: args can be NULL to represent no args */
 int PushFunctionOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, ListNode_t *args);
 
-/* Searches for an identifier and returns the HashNode_t that gives the id and type information */
-/* Returns NULL if not found */
-HashNode_t *FindIdent(SymTab_t *symtab, char *id);
+/* Searches for an identifier and sets the hash_return that contains the id and type information */
+/* Returns -1 and sets hash_return to NULL if not found */
+/* Returns >= 0 tells what scope level it was found at */
+int FindIdent(HashNode_t ** hash_return, SymTab_t *symtab, char *id);
 
 /* Pops the current scope */
 void PopScope(SymTab_t *symtab);

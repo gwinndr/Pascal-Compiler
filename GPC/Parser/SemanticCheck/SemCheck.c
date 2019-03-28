@@ -1,6 +1,11 @@
 /*
     Damon Gwinn
     Performs semantic checking on a given parse tree
+
+    NOTE: Max scope level refers to the highest level scope we can reference a variable at
+        - 0 is the current scope, 1 is the first above and so on
+        - Functions can't have side effects, but they can contain procedures so this is a
+            general way to define the maximum scope level
 */
 
 #include <stdlib.h>
@@ -11,16 +16,17 @@
 #include "../ParseTree/tree_types.h"
 #include "./SymTab/SymTab.h"
 #include "./HashTable/HashTable.h"
+#include "SemChecks/SemCheck_stmt.h"
+#include "SemChecks/SemCheck_expr.h"
 #include "../LexAndYacc/y.tab.h"
+
+int semcheck_program(SymTab_t *symtab, Tree_t *tree);
 
 int semcheck_args(SymTab_t *symtab, ListNode_t *args, int line_num);
 int semcheck_decls(SymTab_t *symtab, ListNode_t *decls);
 
-int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram);
-int semcheck_subprograms(SymTab_t *symtab, ListNode_t *decls);
-int semcheck_tree(SymTab_t *symtab, Tree_t *tree);
-int semcheck_stmt(SymTab_t *symtab, struct Statement *stmt);
-int semcheck_expr(SymTab_t *symtab, struct Expression *expr);
+int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev);
+int semcheck_subprograms(SymTab_t *symtab, ListNode_t *subprograms, int max_scope_lev);
 
 /* The main function for checking a tree */
 /* Return values:
@@ -35,11 +41,46 @@ int start_semcheck(Tree_t *parse_tree)
 
     symtab = InitSymTab();
 
-    return_val = semcheck_tree(symtab, parse_tree);
+    return_val = semcheck_program(symtab, parse_tree);
     DestroySymTab(symtab);
+
+    if(return_val > 0)
+        fprintf(stderr, "Check failed with %d errors!\n", return_val);
+    else
+        fprintf(stderr, "Check successful!\n");
 
     return return_val;
 }
+
+/* Semantic check for a program */
+int semcheck_program(SymTab_t *symtab, Tree_t *tree)
+{
+    int return_val;
+    enum VarType var_type;
+    assert(tree != NULL);
+    assert(symtab != NULL);
+    assert(tree->type == TREE_PROGRAM_TYPE);
+
+    return_val = 0;
+
+    PushScope(symtab);
+
+    /* TODO: Push program name onto scope */
+
+    /* TODO: Fix line number bug here */
+    return_val += semcheck_args(symtab, tree->tree_data.program_data.args_char,
+      tree->line_num);
+
+    return_val += semcheck_decls(symtab, tree->tree_data.program_data.var_declaration);
+
+    return_val += semcheck_subprograms(symtab, tree->tree_data.program_data.subprograms, 0);
+
+    return_val += semcheck_stmt(symtab, tree->tree_data.program_data.body_statement, 0);
+
+    PopScope(symtab);
+    return return_val;
+}
+
 
 /* Adds arguments to the symbol table */
 /* A return value greater than 0 indicates how many errors occurred */
@@ -69,10 +110,12 @@ int semcheck_args(SymTab_t *symtab, ListNode_t *args, int line_num)
         /* Greater than 0 signifies an error */
         if(func_return > 0)
         {
-            fprintf(stderr, "Error on line %d, redeclaration of variable %s!\n",
+            fprintf(stderr, "Error on line %d, redeclaration of name %s!\n",
                 line_num, (char *)cur->cur);
             return_val += func_return;
         }
+
+        cur = cur->next;
     }
 
     return return_val;
@@ -128,11 +171,15 @@ int semcheck_decls(SymTab_t *symtab, ListNode_t *decls)
             /* Greater than 0 signifies an error */
             if(func_return > 0)
             {
-                fprintf(stderr, "Error on line %d, redeclaration of variable %s!\n",
+                fprintf(stderr, "Error on line %d, redeclaration of name %s!\n",
                     tree->line_num, (char *)ids->cur);
                 return_val += func_return;
             }
+
+            ids = ids->next;
         }
+
+        cur = cur->next;
 
     }
 
@@ -141,45 +188,51 @@ int semcheck_decls(SymTab_t *symtab, ListNode_t *decls)
 
 /* Semantic check on an entire subprogram */
 /* A return value greater than 0 indicates how many errors occurred */
-int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram)
+int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
 {
     int return_val, func_return;
+    int new_max_scope;
     enum VarType var_type;
+    enum TreeType sub_type;
 
     assert(symtab != NULL);
     assert(subprogram != NULL);
     assert(subprogram->type == TREE_SUBPROGRAM);
 
-    switch(subprogram->tree_data.subprogram_data.sub_type)
+    sub_type = subprogram->tree_data.subprogram_data.sub_type;
+    assert(sub_type == TREE_SUBPROGRAM_PROC || sub_type == TREE_SUBPROGRAM_FUNC);
+
+    /**** FIRST PLACING SUBPROGRAM ON THE CURRENT SCOPE ****/
+    return_val = 0;
+    if(sub_type == TREE_SUBPROGRAM_PROC)
     {
-        case TREE_SUBPROGRAM_PROC:
-          func_return = PushProcedureOntoScope(symtab, subprogram->tree_data.subprogram_data.id,
-                          subprogram->tree_data.subprogram_data.args_var);
+        func_return = PushProcedureOntoScope(symtab, subprogram->tree_data.subprogram_data.id,
+                        subprogram->tree_data.subprogram_data.args_var);
 
-          break;
-        case TREE_SUBPROGRAM_FUNC:
-          /* Need to additionally extract the return type */
-          if(subprogram->tree_data.subprogram_data.return_type == INT_TYPE)
-              var_type = HASHVAR_INTEGER;
-          else
-              var_type = HASHVAR_REAL;
+        new_max_scope = max_scope_lev+1;
+    }
+    else
+    {
+        /* Need to additionally extract the return type */
+        if(subprogram->tree_data.subprogram_data.return_type == INT_TYPE)
+            var_type = HASHVAR_INTEGER;
+        else
+            var_type = HASHVAR_REAL;
 
-          func_return = PushFunctionOntoScope(symtab, subprogram->tree_data.subprogram_data.id,
-                          var_type, subprogram->tree_data.subprogram_data.args_var);
+        func_return = PushFunctionOntoScope(symtab, subprogram->tree_data.subprogram_data.id,
+                        var_type, subprogram->tree_data.subprogram_data.args_var);
 
-          break;
-
-        default:
-            fprintf(stderr, "BAD TYPE IN TREE_SUBPROGRAM (semcheck_subprogram)!\n");
-            exit(1);
+        new_max_scope = 0;
     }
 
+    /**** Check the subprogram internals now ****/
 
     /* Greater than 0 signifies an error */
     if(func_return > 0)
     {
-        fprintf(stderr, "Error on line %d, redeclaration of variable %s!\n",
+        fprintf(stderr, "On line %d: redeclaration of name %s!\n",
             subprogram->line_num, subprogram->tree_data.subprogram_data.id);
+
         return_val += func_return;
     }
 
@@ -191,61 +244,42 @@ int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram)
 
     return_val += semcheck_decls(symtab, subprogram->tree_data.subprogram_data.declarations);
 
-    return_val += semcheck_subprograms(symtab, subprogram->tree_data.subprogram_data.subprograms);
+    return_val += semcheck_subprograms(symtab, subprogram->tree_data.subprogram_data.subprograms,
+                    new_max_scope);
 
-    return_val += semcheck_stmt(symtab, subprogram->tree_data.subprogram_data.statement_list);
+    /* Functions cannot have side effects, so need to call a special function in that case */
+    if(sub_type == TREE_SUBPROGRAM_PROC)
+    {
+        return_val += semcheck_stmt(symtab,
+                subprogram->tree_data.subprogram_data.statement_list,
+                new_max_scope);
+    }
+    else
+    {
+        return_val += semcheck_func_stmt(symtab,
+                subprogram->tree_data.subprogram_data.statement_list);
+    }
+
+    PopScope(symtab);
+    return return_val;
 }
 
-/* Semantic check for a tree */
-int semcheck_tree(SymTab_t *symtab, Tree_t *tree)
+
+/* Semantic check on multiple subprograms */
+/* A return value greater than 0 indicates how many errors occurred */
+int semcheck_subprograms(SymTab_t *symtab, ListNode_t *subprograms, int max_scope_lev)
 {
+    ListNode_t *cur;
     int return_val;
-    enum VarType var_type;
-    assert(tree != NULL);
     assert(symtab != NULL);
 
     return_val = 0;
-
-    switch(tree->type)
+    cur = subprograms;
+    while(cur != NULL)
     {
-        /* Only allow one program for now */
-        case TREE_PROGRAM_TYPE:
-          PushScope(symtab);
-
-          /* TODO: Push program name onto scope */
-
-          /* TODO: Fix line number bug here */
-          return_val += semcheck_args(symtab, tree->tree_data.program_data.args_char,
-            tree->line_num);
-
-          return_val += semcheck_decls(symtab, tree->tree_data.program_data.var_declaration);
-
-          return_val += semcheck_subprograms(symtab, tree->tree_data.program_data.subprograms);
-
-          return_val += semcheck_stmt(symtab, tree->tree_data.program_data.body_statement);
-          break;
-
-        case TREE_SUBPROGRAM:
-            return_val += semcheck_subprogram(symtab, tree);
-            break;
-
-        /*
-        case TREE_VAR_DECL:
-          fprintf(f, "[VARDECL of type %d]\n", tree->tree_data.var_decl_data.type);
-          list_print(tree->tree_data.var_decl_data.ids, f, num_indent+1);
-          break;
-
-        case TREE_ARR_DECL:
-          fprintf(f, "[ARRDECL of type %d in range(%d, %d)]\n",
-            tree->tree_data.arr_decl_data.type, tree->tree_data.arr_decl_data.s_range,
-            tree->tree_data.arr_decl_data.e_range);
-
-          list_print(tree->tree_data.var_decl_data.ids, f, num_indent+1);
-          break;
-*/
-        default:
-        fprintf(stderr, "BAD TYPE IN semcheck_tree!\n");
-        exit(1);
+        assert(cur->type == LIST_TREE);
+        return_val += semcheck_subprogram(symtab, (Tree_t *)cur->cur, max_scope_lev);
+        cur = cur->next;
     }
 
     return return_val;

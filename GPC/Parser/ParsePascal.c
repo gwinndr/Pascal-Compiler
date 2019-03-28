@@ -10,6 +10,7 @@
 #include "ParseTree/tree.h"
 #include "ParseTree/tree_types.h"
 #include "List/List.h"
+#include "SemanticCheck/SemCheck.h"
 #include "LexAndYacc/y.tab.h"
 
 extern FILE *yyin;
@@ -20,6 +21,9 @@ void InitParser();
 
 int ParsePascal(char *file)
 {
+    int semcheck_return;
+
+    /**** CREATING THE PARSE TREE ****/
     if(file != NULL)
     {
         yyin = fopen(file, "r");
@@ -40,8 +44,14 @@ int ParsePascal(char *file)
         if(parse_tree != NULL)
             tree_print(parse_tree, stderr, 0);
     #endif
+
+    /**** SEMANTIC CHECKING ****/
+    semcheck_return = start_semcheck(parse_tree);
+
     destroy_tree(parse_tree);
     parse_tree = NULL;
+
+    return 0;
 }
 
 void InitParser()

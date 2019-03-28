@@ -1,0 +1,37 @@
+/*
+    Damon Gwinn
+    Performs semantic checking on a given statement
+
+    NOTE: Max scope level refers to the highest level scope we can reference a variable at
+        - 0 is the current scope, 1 is the first above and so on
+        - Functions can't have side effects, but they can contain procedures so this is a
+            general way to define the maximum scope level
+*/
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include "SemCheck_expr.h"
+#include "../SymTab/SymTab.h"
+#include "../../ParseTree/tree_types.h"
+
+/* Semantic check on a normal expression */
+int semcheck_expr(SymTab_t *symtab, struct Expression *expr)
+{
+    semcheck_expr_main(symtab, expr, 0);
+}
+
+/* Semantic check on a function expression (no side effects allowed) */
+int semcheck_expr_func(SymTab_t *symtab, struct Expression *expr)
+{
+    semcheck_expr_main(symtab, expr, 1);
+}
+
+/* Main semantic checking */
+int semcheck_expr_main(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+{
+    assert(symtab != NULL);
+    assert(expr != NULL);
+
+    return 0;
+}

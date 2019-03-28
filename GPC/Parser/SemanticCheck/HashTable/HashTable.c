@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "../../List/List.h"
 #include "HashTable.h"
 
@@ -42,7 +43,7 @@ int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
         hash_node->args = args;
 
         table->table[hash] = CreateListNode(hash_node, LIST_UNSPECIFIED);
-        return 1;
+        return 0;
     }
     else
     {
@@ -50,8 +51,8 @@ int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
         while(cur != NULL)
         {
             hash_node = (HashNode_t *)cur->cur;
-            if(hash_node->id == id)
-                return 0;
+            if(strcmp(hash_node->id, id) == 0)
+                return 1;
 
             cur = cur->next;
         }
@@ -64,7 +65,7 @@ int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
         hash_node->args = args;
 
         table->table[hash] = PushListNodeFront(list, CreateListNode(hash_node, LIST_UNSPECIFIED));
-        return 1;
+        return 0;
     }
 }
 
@@ -86,7 +87,7 @@ HashNode_t *FindIdentInTable(HashTable_t *table, char *id)
         while(list != NULL)
         {
             hash_node = (HashNode_t *)list->cur;
-            if(hash_node->id == id)
+            if(strcmp(hash_node->id, id) == 0)
                 return hash_node;
 
             list = list->next;
