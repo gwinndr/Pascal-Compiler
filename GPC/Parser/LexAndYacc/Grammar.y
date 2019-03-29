@@ -126,8 +126,11 @@
 %token PAREN
 
 /* Extra tokens, DO NOT USE IN GRAMMAR RULES! */
-%token VAR_ASSIGN;
-%token VAR;
+%token VAR_ASSIGN
+%token VAR
+
+/* THIS SHOULD ONLY BE USED FOR BUILTINS! */
+%token BUILTIN_ANY_TYPE
 
 /* Easy fix for the dangling else (borrowed from "lex and yacc" [Levine et al.]) */
 %nonassoc THEN

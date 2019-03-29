@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "SemCheck.h"
 #include "../ParseTree/tree.h"
 #include "../ParseTree/tree_types.h"
@@ -19,6 +20,9 @@
 #include "SemChecks/SemCheck_stmt.h"
 #include "SemChecks/SemCheck_expr.h"
 #include "../LexAndYacc/y.tab.h"
+
+/* Adds built-in functions */
+int semcheck_add_builtins(SymTab_t *symtab);
 
 int semcheck_program(SymTab_t *symtab, Tree_t *tree);
 
@@ -40,6 +44,8 @@ int start_semcheck(Tree_t *parse_tree)
     int return_val;
 
     symtab = InitSymTab();
+    semcheck_add_builtins(symtab);
+    /*PrintSymTab(symtab, stderr, 0);*/
 
     return_val = semcheck_program(symtab, parse_tree);
     DestroySymTab(symtab);
@@ -50,6 +56,30 @@ int start_semcheck(Tree_t *parse_tree)
         fprintf(stderr, "Check successful!\n");
 
     return return_val;
+}
+
+/* Adds built-in functions */
+int semcheck_add_builtins(SymTab_t *symtab)
+{
+    char *id;
+    ListNode_t *args;
+
+    /**** READ PROCEDURE ****/
+    id = strdup("read");
+
+    /* Only arg is a variable to read into */
+    args = CreateListNode(mk_vardecl(-1, NULL, BUILTIN_ANY_TYPE), LIST_TREE);
+
+    AddBuiltinProc(symtab, id, args);
+
+    /**** WRITE PROCEDURE ****/
+    id = strdup("write");
+
+    /* Only arg is a variable to read into */
+    args = CreateListNode(mk_vardecl(-1, NULL, BUILTIN_ANY_TYPE), LIST_TREE);
+
+    AddBuiltinProc(symtab, id, args);
+
 }
 
 /* Semantic check for a program */

@@ -3,7 +3,7 @@
     Creates a symbol table which is simply a stack of hash tables for identifiers
     Used to perform semantic checking on a ParseTree
 
-    WARNING: Symbol table will NOT free given identifier strings when destroyed
+    WARNING: Symbol table will NOT free given identifier strings or args when destroyed
         Remember to free given identifier strings manually
 */
 
@@ -17,15 +17,20 @@
 /*enum VarType{HASHVAR_INTEGER, HASHVAR_REAL, HASHVAR_PROCEDURE, HASHVAR_UNTYPED};
   Defined in HashTable.h */
 
-/* A stack of hash tables */
+/* A stack of hash tables with built-ins */
 typedef struct SymTab
 {
     ListNode_t *stack_head;
-
+    HashTable_t *builtins;
 } SymTab_t;
 
 /* Initializes the SymTab with stack_head pointing to NULL */
 SymTab_t *InitSymTab();
+
+/* Adds a built-in procedure call */
+/* NOTE: Built-ins reflected on all scope levels */
+/* Returns 1 if failed, 0 otherwise */
+int AddBuiltinProc(SymTab_t *symtab, char *id, ListNode_t *args);
 
 /* Pushes a new scope onto the stack (FIFO) */
 void PushScope(SymTab_t *symtab);

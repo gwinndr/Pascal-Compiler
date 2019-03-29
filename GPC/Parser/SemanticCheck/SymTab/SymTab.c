@@ -3,7 +3,7 @@
     Creates a symbol table which is simply a stack of hash tables for identifiers
     Used to perform semantic checking on a ParseTree
 
-    WARNING: Symbol table will NOT free given identifier strings when destroyed
+    WARNING: Symbol table will NOT free given identifier strings or args when destroyed
         Remember to free given identifier strings manually
 */
 
@@ -21,8 +21,21 @@ SymTab_t *InitSymTab()
 
     new_symtab = (SymTab_t *)malloc(sizeof(SymTab_t));
     new_symtab->stack_head = NULL;
+    new_symtab->builtins = InitHashTable();
 
     return new_symtab;
+}
+
+/* Adds a built-in procedure call */
+/* NOTE: Built-ins reflected on all scope levels */
+/* Returns 1 if failed, 0 otherwise */
+int AddBuiltinProc(SymTab_t *symtab, char *id, ListNode_t *args)
+{
+    assert(symtab != NULL);
+    assert(id != NULL);
+
+    return AddIdentToTable(symtab->builtins, id,
+            HASHVAR_PROCEDURE, HASHTYPE_PROCEDURE, args);
 }
 
 /* Pushes a new scope onto the stack (FIFO) */
@@ -48,8 +61,16 @@ int PushVarOntoScope(SymTab_t *symtab, enum VarType var_type, char *id)
 
     HashTable_t *cur_hash;
 
-    cur_hash = (HashTable_t *)symtab->stack_head->cur;
-    return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_VAR, NULL);
+    /* Make sure it's not a builtin */
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
+    {
+        cur_hash = (HashTable_t *)symtab->stack_head->cur;
+        return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_VAR, NULL);
+    }
+    else
+    {
+        return 1;
+    }
 }
 
 /* Pushes a new array onto the current scope (head) */
@@ -60,8 +81,16 @@ int PushArrayOntoScope(SymTab_t *symtab, enum VarType var_type, char *id)
 
     HashTable_t *cur_hash;
 
-    cur_hash = (HashTable_t *)symtab->stack_head->cur;
-    return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_ARRAY, NULL);
+    /* Make sure it's not a builtin */
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
+    {
+        cur_hash = (HashTable_t *)symtab->stack_head->cur;
+        return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_ARRAY, NULL);
+    }
+    else
+    {
+        return 1;
+    }
 }
 
 /* Pushes a new procedure onto the current scope (head) */
@@ -73,8 +102,16 @@ int PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args)
 
     HashTable_t *cur_hash;
 
-    cur_hash = (HashTable_t *)symtab->stack_head->cur;
-    return AddIdentToTable(cur_hash, id, HASHVAR_PROCEDURE, HASHTYPE_PROCEDURE, args);
+    /* Make sure it's not a builtin */
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
+    {
+        cur_hash = (HashTable_t *)symtab->stack_head->cur;
+        return AddIdentToTable(cur_hash, id, HASHVAR_PROCEDURE, HASHTYPE_PROCEDURE, args);
+    }
+    else
+    {
+        return 1;
+    }
 }
 
 /* Pushes a new function onto the current scope (head) */
@@ -86,8 +123,16 @@ int PushFunctionOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, Lis
 
     HashTable_t *cur_hash;
 
-    cur_hash = (HashTable_t *)symtab->stack_head->cur;
-    return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION, args);
+    /* Make sure it's not a builtin */
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
+    {
+        cur_hash = (HashTable_t *)symtab->stack_head->cur;
+        return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION, args);
+    }
+    else
+    {
+        return 1;
+    }
 }
 
 /* Pushes a new function return type var onto the current scope (head) */
@@ -99,8 +144,16 @@ int PushFuncRetOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, List
 
     HashTable_t *cur_hash;
 
-    cur_hash = (HashTable_t *)symtab->stack_head->cur;
-    return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION_RETURN, args);
+    /* Make sure it's not a builtin */
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
+    {
+        cur_hash = (HashTable_t *)symtab->stack_head->cur;
+        return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION_RETURN, args);
+    }
+    else
+    {
+        return 1;
+    }
 }
 
 /* Searches for an identifier and sets the hash_return that contains the id and type information */
@@ -114,6 +167,15 @@ int FindIdent(HashNode_t **hash_return, SymTab_t *symtab, char *id)
     ListNode_t *cur, *next;
     HashNode_t *hash_node;
 
+    /* First check built-ins */
+    hash_node = FindIdentInTable(symtab->builtins, id);
+    if(hash_node != NULL)
+    {
+        *hash_return = hash_node;
+        return return_val;
+    }
+
+    /* Then check user definitions */
     cur = symtab->stack_head;
     while(cur != NULL)
     {
@@ -166,6 +228,7 @@ void DestroySymTab(SymTab_t *symtab)
         cur = next;
     }
 
+    DestroyHashTable(symtab->builtins);
     free(symtab);
 }
 
@@ -176,6 +239,11 @@ void PrintSymTab(SymTab_t *symtab, FILE *f, int num_indent)
 
     int i, scope;
     ListNode_t *cur;
+
+    for(i = 0; i < num_indent; ++i)
+        fprintf(f, "  ");
+    fprintf(f, "[BUILT-INS]:\n");
+    PrintHashTable(symtab->builtins, f, num_indent+1);
 
     cur = symtab->stack_head;
     scope = 0;
