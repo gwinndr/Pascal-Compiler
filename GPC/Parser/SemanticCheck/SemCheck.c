@@ -6,6 +6,8 @@
         - 0 is the current scope, 1 is the first above and so on
         - Functions can't have side effects, but they can contain procedures so this is a
             general way to define the maximum scope level
+
+    TODO: CHECK FOR RETURN IN FUNCTIONS (Add a "referenced" flag to symbol table elements. Need it for optimizations anyway...)
 */
 
 #include <stdlib.h>

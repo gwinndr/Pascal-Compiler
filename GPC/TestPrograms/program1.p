@@ -30,7 +30,7 @@ begin
     b := 3;
     multadd;
     while (a > b) do
-      b:= b + 1
+      b := b + 1
     (*writeln(c);
     writeln(d)*)
 end.

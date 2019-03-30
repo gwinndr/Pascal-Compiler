@@ -163,8 +163,9 @@ int FindIdent(HashNode_t **hash_return, SymTab_t *symtab, char *id)
 {
     int return_val = 0;
     assert(symtab != NULL);
+    assert(id != NULL);
 
-    ListNode_t *cur, *next;
+    ListNode_t *cur;
     HashNode_t *hash_node;
 
     /* First check built-ins */

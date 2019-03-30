@@ -11,11 +11,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <limits.h>
 #include "SemCheck_stmt.h"
 #include "SemCheck_expr.h"
 #include "../SymTab/SymTab.h"
+#include "../../ParseTree/tree.h"
 #include "../../ParseTree/tree_types.h"
 #include "../../List/List.h"
+#include "../../LexAndYacc/y.tab.h"
 
 int semcheck_stmt_main(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev);
 
@@ -25,6 +28,7 @@ int semcheck_compoundstmt(SymTab_t *symtab, struct Statement *stmt, int max_scop
 int semcheck_ifthen(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev);
 int semcheck_while(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev);
 int semcheck_for(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev);
+int semcheck_for_assign(SymTab_t *symtab, struct Statement *for_assign, int max_scope_lev);
 
 /* Semantic check on a normal statement */
 int semcheck_stmt(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
@@ -88,6 +92,7 @@ int semcheck_stmt_main(SymTab_t *symtab, struct Statement *stmt, int max_scope_l
 int semcheck_varassign(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
 {
     int return_val;
+    int type_first, type_second;
     struct Expression *var, *expr;
 
     assert(symtab != NULL);
@@ -99,19 +104,28 @@ int semcheck_varassign(SymTab_t *symtab, struct Statement *stmt, int max_scope_l
     var = stmt->stmt_data.var_assign_data.var;
     expr = stmt->stmt_data.var_assign_data.expr;
 
-    return_val += semcheck_expr_main(symtab, var, max_scope_lev);
-    return_val += semcheck_expr_main(symtab, expr, max_scope_lev);
+    /* NOTE: Grammar will make sure the left side is a variable */
+    /* Left side var assigns must abide by scoping rules */
+    return_val += semcheck_expr_main(&type_first, symtab, var, max_scope_lev);
+    return_val += semcheck_expr_main(&type_second, symtab, expr, INT_MAX);
+
+    if(type_first != type_second)
+    {
+        fprintf(stderr, "Error on line %d, type mismatch in assignment statement!\n\n",
+                stmt->line_num);
+        ++return_val;
+    }
 
     return return_val;
 }
 
 /** PROCEDURE_CALL **/
-/* TODO: Type check arguments */
 int semcheck_proccall(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
 {
-    int return_val, scope_return;
+    int return_val, scope_return, cur_arg, arg_type;
     HashNode_t *sym_return;
-    ListNode_t *cur_expr;
+    ListNode_t *true_args, *args_given;
+    Tree_t *arg_decl;
 
     assert(symtab != NULL);
     assert(stmt != NULL);
@@ -119,7 +133,7 @@ int semcheck_proccall(SymTab_t *symtab, struct Statement *stmt, int max_scope_le
 
     return_val = 0;
 
-    cur_expr = stmt->stmt_data.procedure_call_data.expr_args;
+    args_given = stmt->stmt_data.procedure_call_data.expr_args;
 
     scope_return = FindIdent(&sym_return, symtab, (char *)stmt->stmt_data.procedure_call_data.id);
     if(scope_return == -1)
@@ -146,6 +160,46 @@ int semcheck_proccall(SymTab_t *symtab, struct Statement *stmt, int max_scope_le
             fprintf(stderr, "Error on line %d, expected %s to be a procedure!\n",
                 stmt->line_num, (char *)stmt->stmt_data.procedure_call_data.id);
 
+            ++return_val;
+        }
+
+        /***** THEN VERIFY ARGS INSIDE *****/
+        cur_arg = 0;
+        true_args = sym_return->args;
+        while(args_given != NULL && true_args != NULL)
+        {
+            ++cur_arg;
+            assert(args_given->type == LIST_EXPR);
+            assert(true_args->type == LIST_TREE);
+            return_val += semcheck_expr_main(&arg_type,
+                symtab, (struct Expression *)args_given->cur, INT_MAX);
+
+            arg_decl = (Tree_t *)true_args->cur;
+            assert(arg_decl->type == TREE_VAR_DECL);
+
+            if(arg_type != arg_decl->tree_data.var_decl_data.type &&
+                arg_decl->tree_data.var_decl_data.type != BUILTIN_ANY_TYPE)
+            {
+                fprintf(stderr, "Error on line %d, on function call %s, argument %d: Type mismatch!\n\n",
+                    stmt->line_num, (char *)stmt->stmt_data.procedure_call_data.id, cur_arg);
+                ++return_val;
+            }
+
+            args_given = args_given->next;
+            true_args = true_args->next;
+        }
+
+        /* Verify arg counts match up */
+        if(true_args == NULL && args_given != NULL)
+        {
+            fprintf(stderr, "Error on line %d, on function call %s, too many arguments given!\n\n",
+                stmt->line_num, (char *)stmt->stmt_data.procedure_call_data.id);
+            ++return_val;
+        }
+        else if(true_args != NULL && args_given == NULL)
+        {
+            fprintf(stderr, "Error on line %d, on function call %s, not enough arguments given!\n\n",
+                stmt->line_num, (char *)stmt->stmt_data.procedure_call_data.id);
             ++return_val;
         }
     }
@@ -182,6 +236,7 @@ int semcheck_compoundstmt(SymTab_t *symtab, struct Statement *stmt, int max_scop
 int semcheck_ifthen(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
 {
     int return_val;
+    int if_type;
     struct Expression *relop_expr;
     struct Statement *if_stmt, *else_stmt;
 
@@ -194,10 +249,18 @@ int semcheck_ifthen(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
     if_stmt = stmt->stmt_data.if_then_data.if_stmt;
     else_stmt = stmt->stmt_data.if_then_data.else_stmt;
 
-    return_val += semcheck_expr_main(symtab, relop_expr, max_scope_lev);
+    return_val += semcheck_expr_main(&if_type, symtab, relop_expr, INT_MAX);
+
+    if(if_type != BOOL)
+    {
+        fprintf(stderr, "Error on line %d, expected relational inside if statement!\n\n",
+                stmt->line_num);
+        ++return_val;
+    }
+
     return_val += semcheck_stmt_main(symtab, if_stmt, max_scope_lev);
     if(else_stmt != NULL)
-        return_val += semcheck_stmt_main(symtab, if_stmt, max_scope_lev);
+        return_val += semcheck_stmt_main(symtab, else_stmt, max_scope_lev);
 
     return return_val;
 }
@@ -206,6 +269,7 @@ int semcheck_ifthen(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
 int semcheck_while(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
 {
     int return_val;
+    int while_type;
     struct Expression *relop_expr;
     struct Statement *while_stmt;
 
@@ -217,7 +281,14 @@ int semcheck_while(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
     relop_expr = stmt->stmt_data.while_data.relop_expr;
     while_stmt = stmt->stmt_data.while_data.while_stmt;
 
-    return_val += semcheck_expr_main(symtab, relop_expr, max_scope_lev);
+    return_val += semcheck_expr_main(&while_type, symtab, relop_expr, INT_MAX);
+    if(while_type != BOOL)
+    {
+        fprintf(stderr, "Error on line %d, expected relational inside while statement!\n\n",
+                stmt->line_num);
+        ++return_val;
+    }
+
     return_val += semcheck_stmt_main(symtab, while_stmt, max_scope_lev);
 
     return return_val;
@@ -227,6 +298,7 @@ int semcheck_while(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
 int semcheck_for(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
 {
     int return_val;
+    int for_type, to_type;
     enum StmtType for_assign_type; /* Either var or var_assign */
     struct Statement *for_assign;
     struct Expression *for_var;
@@ -245,20 +317,71 @@ int semcheck_for(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
     if(for_assign_type == STMT_FOR_VAR)
     {
         for_var = stmt->stmt_data.for_data.for_assign_data.var;
-        semcheck_expr_main(symtab, for_var, max_scope_lev);
+        return_val += semcheck_expr_main(&for_type, symtab, for_var, max_scope_lev);
+        /* Check for type */
+        if(for_type != INT_TYPE)
+        {
+            fprintf(stderr, "Error on line %d, expected int in \"for\" assignment!\n\n",
+                    stmt->line_num);
+            ++return_val;
+        }
     }
     else
     {
         for_assign = stmt->stmt_data.for_data.for_assign_data.var_assign;
-        semcheck_stmt_main(symtab, for_assign, max_scope_lev);
+        /* For type checked in here */
+        return_val += semcheck_for_assign(symtab, for_assign, max_scope_lev);
     }
 
 
     to_expr = stmt->stmt_data.for_data.to;
     do_for = stmt->stmt_data.for_data.do_for;
 
-    return_val += semcheck_expr_main(symtab, to_expr, max_scope_lev);
+    return_val += semcheck_expr_main(&to_type, symtab, to_expr, INT_MAX);
+    if(to_type != INT_TYPE)
+    {
+        fprintf(stderr, "Error on line %d, expected int in \"to\" assignment!\n\n",
+                stmt->line_num);
+        ++return_val;
+    }
+
     return_val += semcheck_stmt_main(symtab, do_for, max_scope_lev);
+
+    return return_val;
+}
+
+/* Essentially the same as the var assignment but with a restriction that it must be an int */
+int semcheck_for_assign(SymTab_t *symtab, struct Statement *for_assign, int max_scope_lev)
+{
+    int return_val;
+    int type_first, type_second;
+    struct Expression *var, *expr;
+
+    assert(symtab != NULL);
+    assert(for_assign != NULL);
+    assert(for_assign->type == STMT_VAR_ASSIGN);
+
+    return_val = 0;
+
+    var = for_assign->stmt_data.var_assign_data.var;
+    expr = for_assign->stmt_data.var_assign_data.expr;
+
+    /* NOTE: Grammar will make sure the left side is a variable */
+    return_val += semcheck_expr_main(&type_first, symtab, var, max_scope_lev);
+    return_val += semcheck_expr_main(&type_second, symtab, expr, INT_MAX);
+
+    if(type_first != type_second)
+    {
+        fprintf(stderr, "Error on line %d, type mismatch in \"for\" assignment statement!\n\n",
+                for_assign->line_num);
+        ++return_val;
+    }
+    if(type_first != INT_TYPE)
+    {
+        fprintf(stderr, "Error on line %d, expected int in \"for\" assignment statement!\n\n",
+                for_assign->line_num);
+        ++return_val;
+    }
 
     return return_val;
 }

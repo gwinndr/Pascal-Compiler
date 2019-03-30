@@ -132,6 +132,12 @@
 /* THIS SHOULD ONLY BE USED FOR BUILTINS! */
 %token BUILTIN_ANY_TYPE
 
+/* THIS SHOULD ONLY BE USED FOR RELOPS. THIS IS NOT A VALID TYPE DECL */
+%token BOOL
+
+/* SHOULD ONLY BE USED FOR SEMANTIC CHECKING */
+%token UNKNOWN_TYPE
+
 /* Easy fix for the dangling else (borrowed from "lex and yacc" [Levine et al.]) */
 %nonassoc THEN
 %nonassoc ELSE

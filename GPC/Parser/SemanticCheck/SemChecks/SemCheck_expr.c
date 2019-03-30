@@ -7,7 +7,7 @@
         - Functions can't have side effects, but they can contain procedures so this is a
             general way to define the maximum scope level
 
-    TODO: Check types match
+    All functions set the pointer type_return to the type the expression will return
 */
 
 #include <stdlib.h>
@@ -20,28 +20,80 @@
 #include "../../ParseTree/tree_types.h"
 #include "../../LexAndYacc/y.tab.h"
 
-int semcheck_relop(SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
-int semcheck_signterm(SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
-int semcheck_addop(SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
-int semcheck_mulop(SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
-int semcheck_varid(SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
-int semcheck_arrayaccess(SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
-int semcheck_funccall(SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+int is_type_ir(int *type);
+int is_and_or(int *type);
+int set_type_from_hashtype(int *type, HashNode_t *hash_node);
+
+int semcheck_relop(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+int semcheck_signterm(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+int semcheck_addop(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+int semcheck_mulop(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+int semcheck_varid(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+int semcheck_arrayaccess(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+int semcheck_funccall(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+
+/* Verifies a type is an INT_TYPE or REAL_TYPE */
+int is_type_ir(int *type)
+{
+    assert(type != NULL);
+    return (*type == INT_TYPE || *type == REAL_TYPE);
+}
+/* Checks if a type is a relational AND or OR */
+int is_and_or(int *type)
+{
+    assert(type != NULL);
+    return (*type == AND || *type == OR);
+}
+/* Sets a type based on a hash_type */
+int set_type_from_hashtype(int *type, HashNode_t *hash_node)
+{
+    assert(type != NULL);
+    assert(hash_node != NULL);
+
+    switch(hash_node->var_type)
+    {
+        case HASHVAR_INTEGER:
+            *type = INT_TYPE;
+            break;
+        case HASHVAR_REAL:
+            *type = REAL_TYPE;
+            break;
+        case HASHVAR_PROCEDURE:
+            *type = PROCEDURE;
+            break;
+        case HASHVAR_UNTYPED:
+            *type = UNKNOWN_TYPE;
+            break;
+        default:
+            fprintf(stderr, "ERROR in set_type_from_hashtype, bad types!\n");
+            exit(1);
+    }
+}
 
 /* Semantic check on a normal expression */
-int semcheck_expr(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+int semcheck_expr(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
 {
-    semcheck_expr_main(symtab, expr, max_scope_lev);
+    semcheck_expr_main(type_return, symtab, expr, max_scope_lev);
 }
 
 /* Semantic check on a function expression (no side effects allowed) */
-int semcheck_expr_func(SymTab_t *symtab, struct Expression *expr)
+int semcheck_expr_func(int *type_return,
+    SymTab_t *symtab, struct Expression *expr)
 {
-    semcheck_expr_main(symtab, expr, 0);
+    semcheck_expr_main(type_return, symtab, expr, 0);
 }
 
 /* Main semantic checking */
-int semcheck_expr_main(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+int semcheck_expr_main(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
 {
     int return_val;
     assert(symtab != NULL);
@@ -51,36 +103,40 @@ int semcheck_expr_main(SymTab_t *symtab, struct Expression *expr, int max_scope_
     switch(expr->type)
     {
         case EXPR_RELOP:
-            return_val += semcheck_relop(symtab, expr, max_scope_lev);
+            return_val += semcheck_relop(type_return, symtab, expr, max_scope_lev);
             break;
 
         case EXPR_SIGN_TERM:
-            return_val += semcheck_signterm(symtab, expr, max_scope_lev);
+            return_val += semcheck_signterm(type_return, symtab, expr, max_scope_lev);
             break;
 
         case EXPR_ADDOP:
-            return_val += semcheck_addop(symtab, expr, max_scope_lev);
+            return_val += semcheck_addop(type_return, symtab, expr, max_scope_lev);
             break;
 
         case EXPR_MULOP:
-            return_val += semcheck_mulop(symtab, expr, max_scope_lev);
+            return_val += semcheck_mulop(type_return, symtab, expr, max_scope_lev);
             break;
 
         case EXPR_VAR_ID:
-            return_val += semcheck_varid(symtab, expr, max_scope_lev);
+            return_val += semcheck_varid(type_return, symtab, expr, max_scope_lev);
             break;
 
         case EXPR_ARRAY_ACCESS:
-            return_val += semcheck_arrayaccess(symtab, expr, max_scope_lev);
+            return_val += semcheck_arrayaccess(type_return, symtab, expr, max_scope_lev);
             break;
 
         case EXPR_FUNCTION_CALL:
-            return_val += semcheck_funccall(symtab, expr, max_scope_lev);
+            return_val += semcheck_funccall(type_return, symtab, expr, max_scope_lev);
             break;
 
         /*** BASE CASES ***/
         case EXPR_INUM:
+            *type_return = INT_TYPE;
+            break;
+
         case EXPR_RNUM:
+            *type_return = REAL_TYPE;
             break;
 
         default:
@@ -94,9 +150,11 @@ int semcheck_expr_main(SymTab_t *symtab, struct Expression *expr, int max_scope_
 /****** EXPR SEMCHECKS *******/
 
 /** RELOP **/
-int semcheck_relop(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+int semcheck_relop(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
 {
     int return_val;
+    int type_first, type_second;
     struct Expression *expr1, *expr2;
     assert(symtab != NULL);
     assert(expr != NULL);
@@ -106,15 +164,57 @@ int semcheck_relop(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
     expr1 = expr->expr_data.relop_data.left;
     expr2 = expr->expr_data.relop_data.right;
 
-    return_val += semcheck_expr_main(symtab, expr1, max_scope_lev);
+    return_val += semcheck_expr_main(&type_first, symtab, expr1, max_scope_lev);
     if(expr2 != NULL)
-        return_val += semcheck_expr_main(symtab, expr2, max_scope_lev);
+        return_val += semcheck_expr_main(&type_second, symtab, expr2, max_scope_lev);
 
+    /* Verifying types */
+
+    /* Type must be a bool (this only happens with a NOT operator) */
+    if(expr2 == NULL && type_first != BOOL)
+    {
+        fprintf(stderr, "Error on line %d, expected relational type after \"NOT\"!\n\n",
+            expr->line_num);
+        ++return_val;
+    }
+    else
+    {
+        if(type_first != type_second)
+        {
+            fprintf(stderr, "Error on line %d, relational types do not match!\n\n",
+                expr->line_num);
+            ++return_val;
+        }
+
+        /* Checking AND OR semantics */
+        if(is_and_or(&expr->expr_data.relop_data.type))
+        {
+            if(type_first != BOOL || type_second != BOOL)
+            {
+                fprintf(stderr,
+                    "Error on line %d, expected two relational types between AND/OR!\n\n",
+                    expr->line_num);
+                ++return_val;
+            }
+        }
+        else
+        {
+            if(!is_type_ir(&type_first) || !is_type_ir(&type_second))
+            {
+                fprintf(stderr, "Error on line %d, expected two int/reals between relational op!\n\n",
+                    expr->line_num);
+                ++return_val;
+            }
+        }
+    }
+
+    *type_return = BOOL;
     return return_val;
 }
 
 /** SIGN_TERM **/
-int semcheck_signterm(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+int semcheck_signterm(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
 {
     int return_val;
     struct Expression *sign_expr;
@@ -125,15 +225,25 @@ int semcheck_signterm(SymTab_t *symtab, struct Expression *expr, int max_scope_l
     return_val = 0;
     sign_expr = expr->expr_data.sign_term;
 
-    return_val += semcheck_expr_main(symtab, sign_expr, max_scope_lev);
+    return_val += semcheck_expr_main(type_return, symtab, sign_expr, max_scope_lev);
+
+    /* Checking types */
+    if(!is_type_ir(type_return))
+    {
+        fprintf(stderr, "Error on line %d, expected int or real after \"-\"!\n\n",
+            expr->line_num);
+        ++return_val;
+    }
 
     return return_val;
 }
 
 /** ADDOP **/
-int semcheck_addop(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+int semcheck_addop(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
 {
     int return_val;
+    int type_first, type_second;
     struct Expression *expr1, *expr2;
     assert(symtab != NULL);
     assert(expr != NULL);
@@ -143,16 +253,33 @@ int semcheck_addop(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
     expr1 = expr->expr_data.addop_data.left_expr;
     expr2 = expr->expr_data.addop_data.right_term;
 
-    return_val += semcheck_expr_main(symtab, expr1, max_scope_lev);
-    return_val += semcheck_expr_main(symtab, expr2, max_scope_lev);
+    return_val += semcheck_expr_main(&type_first, symtab, expr1, max_scope_lev);
+    return_val += semcheck_expr_main(&type_second, symtab, expr2, max_scope_lev);
 
+    /* Checking types */
+    if(type_first != type_second)
+    {
+        fprintf(stderr, "Error on line %d, type mismatch on addop!\n\n",
+            expr->line_num);
+        ++return_val;
+    }
+    if(!is_type_ir(&type_first) || !is_type_ir(&type_second))
+    {
+        fprintf(stderr, "Error on line %d, expected int/real on both sides of addop!\n\n",
+            expr->line_num);
+        ++return_val;
+    }
+
+    *type_return = type_first;
     return return_val;
 }
 
 /** MULOP **/
-int semcheck_mulop(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+int semcheck_mulop(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
 {
     int return_val;
+    int type_first, type_second;
     struct Expression *expr1, *expr2;
     assert(symtab != NULL);
     assert(expr != NULL);
@@ -162,14 +289,30 @@ int semcheck_mulop(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
     expr1 = expr->expr_data.mulop_data.left_term;
     expr2 = expr->expr_data.mulop_data.right_factor;
 
-    return_val += semcheck_expr_main(symtab, expr1, max_scope_lev);
-    return_val += semcheck_expr_main(symtab, expr2, max_scope_lev);
+    return_val += semcheck_expr_main(&type_first, symtab, expr1, max_scope_lev);
+    return_val += semcheck_expr_main(&type_second, symtab, expr2, max_scope_lev);
 
+    /* Checking types */
+    if(type_first != type_second)
+    {
+        fprintf(stderr, "Error on line %d, type mismatch on mulop!\n\n",
+            expr->line_num);
+        ++return_val;
+    }
+    if(!is_type_ir(&type_first) || !is_type_ir(&type_second))
+    {
+        fprintf(stderr, "Error on line %d, expected int/real on both sides of mulop!\n\n",
+            expr->line_num);
+        ++return_val;
+    }
+
+    *type_return = type_first;
     return return_val;
 }
 
 /** VAR_ID **/
-int semcheck_varid(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+int semcheck_varid(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
 {
     int return_val, scope_return;
     char *id;
@@ -186,12 +329,14 @@ int semcheck_varid(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
     {
         fprintf(stderr, "Error on line %d, undeclared identifier \"%s\"!\n\n", expr->line_num, id);
         ++return_val;
+
+        *type_return = UNKNOWN_TYPE;
     }
     else
     {
         if(scope_return > max_scope_lev)
         {
-            fprintf(stderr, "Error on line %d, \"%s\" defined in unreachable scope!\n",
+            fprintf(stderr, "Error on line %d, cannot change \"%s\", invalid scope!\n",
                 expr->line_num, id);
             fprintf(stderr, "[Was it defined above a function declaration?]\n\n");
             ++return_val;
@@ -199,20 +344,23 @@ int semcheck_varid(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
         if(hash_return->hash_type != HASHTYPE_VAR &&
             hash_return->hash_type != HASHTYPE_FUNCTION_RETURN)
         {
-            fprintf(stderr, "Error on line %d, \"%s\" is not a scalar variable!\n\n",
+            fprintf(stderr, "Error on line %d, cannot assign \"%s\", is not a scalar variable!\n\n",
                 expr->line_num, id);
             ++return_val;
         }
+        set_type_from_hashtype(type_return, hash_return);
     }
 
     return return_val;
 }
 
 /** ARRAY_ACCESS **/
-int semcheck_arrayaccess(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+int semcheck_arrayaccess(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
 {
     int return_val, scope_return;
     char *id;
+    int expr_type;
     struct Expression *access_expr;
     HashNode_t *hash_return;
     assert(symtab != NULL);
@@ -230,12 +378,14 @@ int semcheck_arrayaccess(SymTab_t *symtab, struct Expression *expr, int max_scop
     {
         fprintf(stderr, "Error on line %d, undeclared identifier \"%s\"!\n\n", expr->line_num, id);
         ++return_val;
+
+        *type_return = UNKNOWN_TYPE;
     }
     else
     {
         if(scope_return > max_scope_lev)
         {
-            fprintf(stderr, "Error on line %d, \"%s\" defined in unreachable scope!\n",
+            fprintf(stderr, "Error on line %d, cannot change \"%s\", invalid scope!\n",
                 expr->line_num, id);
             fprintf(stderr, "[Was it defined above a function declaration?]\n\n");
             ++return_val;
@@ -246,29 +396,39 @@ int semcheck_arrayaccess(SymTab_t *symtab, struct Expression *expr, int max_scop
                 expr->line_num, id);
             ++return_val;
         }
+
+        set_type_from_hashtype(type_return, hash_return);
     }
 
     /***** THEN VERIFY EXPRESSION INSIDE *****/
-    return_val += semcheck_expr_main(symtab, access_expr, max_scope_lev);
+    return_val += semcheck_expr_main(&expr_type, symtab, access_expr, max_scope_lev);
+    if(expr_type != INT_TYPE)
+    {
+        fprintf(stderr, "Error on line %d, expected int in array index expression!\n\n",
+            expr->line_num);
+        ++return_val;
+    }
 
     return return_val;
 }
 
 /** FUNC_CALL **/
-/* TODO: Verify args */
-int semcheck_funccall(SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+int semcheck_funccall(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
 {
     int return_val, scope_return;
     char *id;
-    ListNode_t *args;
+    int arg_type, cur_arg;
+    ListNode_t *true_args, *args_given;
     HashNode_t *hash_return;
+    Tree_t *arg_decl;
     assert(symtab != NULL);
     assert(expr != NULL);
     assert(expr->type == EXPR_FUNCTION_CALL);
 
     return_val = 0;
     id = expr->expr_data.function_call_data.id;
-    args = expr->expr_data.function_call_data.args_expr;
+    args_given = expr->expr_data.function_call_data.args_expr;
 
     /***** FIRST VERIFY FUNCTION IDENTIFIER *****/
 
@@ -277,12 +437,14 @@ int semcheck_funccall(SymTab_t *symtab, struct Expression *expr, int max_scope_l
     {
         fprintf(stderr, "Error on line %d, undeclared identifier %s!\n\n", expr->line_num, id);
         ++return_val;
+
+        *type_return = UNKNOWN_TYPE;
     }
     else
     {
         if(scope_return > max_scope_lev)
         {
-            fprintf(stderr, "Error on line %d, \"%s\" defined in unreachable scope!\n\n",
+            fprintf(stderr, "Error on line %d, cannot change \"%s\", invalid scope!\n\n",
                 expr->line_num, id);
             fprintf(stderr, "[Was it defined above a function declaration?]\n\n");
             ++return_val;
@@ -294,14 +456,46 @@ int semcheck_funccall(SymTab_t *symtab, struct Expression *expr, int max_scope_l
                 expr->line_num, id);
             ++return_val;
         }
-    }
 
-    /***** THEN VERIFY ARGS INSIDE *****/
-    while(args != NULL)
-    {
-        assert(args->type == LIST_EXPR);
-        return_val += semcheck_expr_main(symtab, (struct Expression *)args->cur, max_scope_lev);
-        args = args->next;
+        set_type_from_hashtype(type_return, hash_return);
+
+        /***** THEN VERIFY ARGS INSIDE *****/
+        cur_arg = 0;
+        true_args = hash_return->args;
+        while(args_given != NULL && true_args != NULL)
+        {
+            ++cur_arg;
+            assert(args_given->type == LIST_EXPR);
+            assert(true_args->type == LIST_TREE);
+            return_val += semcheck_expr_main(&arg_type,
+                symtab, (struct Expression *)args_given->cur, max_scope_lev);
+
+            arg_decl = (Tree_t *)true_args->cur;
+            assert(arg_decl->type == TREE_VAR_DECL);
+
+            if(arg_type != arg_decl->tree_data.var_decl_data.type &&
+                arg_decl->tree_data.var_decl_data.type != BUILTIN_ANY_TYPE)
+            {
+                fprintf(stderr, "Error on line %d, on function call %s, argument %d: Type mismatch!\n\n",
+                    expr->line_num, id, cur_arg);
+                ++return_val;
+            }
+
+            args_given = args_given->next;
+            true_args = true_args->next;
+        }
+        if(true_args == NULL && args_given != NULL)
+        {
+            fprintf(stderr, "Error on line %d, on function call %s, too many arguments given!\n\n",
+                expr->line_num, id);
+            ++return_val;
+        }
+        else if(true_args != NULL && args_given == NULL)
+        {
+            fprintf(stderr, "Error on line %d, on function call %s, not enough arguments given!\n\n",
+                expr->line_num, id);
+            ++return_val;
+        }
     }
 
     return return_val;

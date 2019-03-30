@@ -15,13 +15,16 @@
 #include "../../ParseTree/tree_types.h"
 
 /* Semantic check on a normal expression */
-int semcheck_expr(SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+int semcheck_expr(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
 
 /* Semantic check on a function expression (no side effects allowed) */
-int semcheck_expr_func(SymTab_t *symtab, struct Expression *expr);
+int semcheck_expr_func(int *type_return,
+    SymTab_t *symtab, struct Expression *expr);
 
 /* Main semantic checking */
 /* NOTE: Using one of the above two functions is more readable */
-int semcheck_expr_main(SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+int semcheck_expr_main(int *type_return,
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
 
 #endif
