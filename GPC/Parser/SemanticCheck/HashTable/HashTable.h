@@ -26,6 +26,10 @@ typedef struct HashNode
     enum VarType var_type;
     ListNode_t *args; /* NULL when no args (or not applicable to given type) */
 
+    /* Symbol table resources */
+    int referenced;
+    int mutated;
+
 } HashNode_t;
 
 /* Our actual hash table */
@@ -44,7 +48,11 @@ int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
     enum HashType hash_type, ListNode_t *args);
 
 /* Searches for the given identifier in the table. Returns NULL if not found */
-HashNode_t *FindIdentInTable(HashTable_t *table, char *id);
+/* Mutating tells whether it's being referenced in an assignment context */
+HashNode_t *FindIdentInTable(HashTable_t *table, char *id, int mutating);
+
+/* Resets hash node mutation and reference status */
+void ResetHashNodeStatus(HashNode_t *hash_node);
 
 /* Frees any and all allocated ListNode_t pointers */
 void DestroyHashTable(HashTable_t *table);

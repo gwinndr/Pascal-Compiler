@@ -106,8 +106,8 @@ int semcheck_varassign(SymTab_t *symtab, struct Statement *stmt, int max_scope_l
 
     /* NOTE: Grammar will make sure the left side is a variable */
     /* Left side var assigns must abide by scoping rules */
-    return_val += semcheck_expr_main(&type_first, symtab, var, max_scope_lev);
-    return_val += semcheck_expr_main(&type_second, symtab, expr, INT_MAX);
+    return_val += semcheck_expr_main(&type_first, symtab, var, max_scope_lev, MUTATE);
+    return_val += semcheck_expr_main(&type_second, symtab, expr, INT_MAX, NO_MUTATE);
 
     if(type_first != type_second)
     {
@@ -135,7 +135,8 @@ int semcheck_proccall(SymTab_t *symtab, struct Statement *stmt, int max_scope_le
 
     args_given = stmt->stmt_data.procedure_call_data.expr_args;
 
-    scope_return = FindIdent(&sym_return, symtab, (char *)stmt->stmt_data.procedure_call_data.id);
+    scope_return = FindIdent(&sym_return, symtab, (char *)stmt->stmt_data.procedure_call_data.id,
+                                NO_MUTATE);
     if(scope_return == -1)
     {
         fprintf(stderr, "Error on line %d, unrecognized name %s\n", stmt->line_num,
@@ -172,7 +173,7 @@ int semcheck_proccall(SymTab_t *symtab, struct Statement *stmt, int max_scope_le
             assert(args_given->type == LIST_EXPR);
             assert(true_args->type == LIST_TREE);
             return_val += semcheck_expr_main(&arg_type,
-                symtab, (struct Expression *)args_given->cur, INT_MAX);
+                symtab, (struct Expression *)args_given->cur, INT_MAX, NO_MUTATE);
 
             arg_decl = (Tree_t *)true_args->cur;
             assert(arg_decl->type == TREE_VAR_DECL);
@@ -249,7 +250,7 @@ int semcheck_ifthen(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
     if_stmt = stmt->stmt_data.if_then_data.if_stmt;
     else_stmt = stmt->stmt_data.if_then_data.else_stmt;
 
-    return_val += semcheck_expr_main(&if_type, symtab, relop_expr, INT_MAX);
+    return_val += semcheck_expr_main(&if_type, symtab, relop_expr, INT_MAX, NO_MUTATE);
 
     if(if_type != BOOL)
     {
@@ -281,7 +282,7 @@ int semcheck_while(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
     relop_expr = stmt->stmt_data.while_data.relop_expr;
     while_stmt = stmt->stmt_data.while_data.while_stmt;
 
-    return_val += semcheck_expr_main(&while_type, symtab, relop_expr, INT_MAX);
+    return_val += semcheck_expr_main(&while_type, symtab, relop_expr, INT_MAX, NO_MUTATE);
     if(while_type != BOOL)
     {
         fprintf(stderr, "Error on line %d, expected relational inside while statement!\n\n",
@@ -317,7 +318,7 @@ int semcheck_for(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
     if(for_assign_type == STMT_FOR_VAR)
     {
         for_var = stmt->stmt_data.for_data.for_assign_data.var;
-        return_val += semcheck_expr_main(&for_type, symtab, for_var, max_scope_lev);
+        return_val += semcheck_expr_main(&for_type, symtab, for_var, max_scope_lev, NO_MUTATE);
         /* Check for type */
         if(for_type != INT_TYPE)
         {
@@ -337,7 +338,7 @@ int semcheck_for(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
     to_expr = stmt->stmt_data.for_data.to;
     do_for = stmt->stmt_data.for_data.do_for;
 
-    return_val += semcheck_expr_main(&to_type, symtab, to_expr, INT_MAX);
+    return_val += semcheck_expr_main(&to_type, symtab, to_expr, INT_MAX, NO_MUTATE);
     if(to_type != INT_TYPE)
     {
         fprintf(stderr, "Error on line %d, expected int in \"to\" assignment!\n\n",
@@ -367,8 +368,8 @@ int semcheck_for_assign(SymTab_t *symtab, struct Statement *for_assign, int max_
     expr = for_assign->stmt_data.var_assign_data.expr;
 
     /* NOTE: Grammar will make sure the left side is a variable */
-    return_val += semcheck_expr_main(&type_first, symtab, var, max_scope_lev);
-    return_val += semcheck_expr_main(&type_second, symtab, expr, INT_MAX);
+    return_val += semcheck_expr_main(&type_first, symtab, var, max_scope_lev, MUTATE);
+    return_val += semcheck_expr_main(&type_second, symtab, expr, INT_MAX, NO_MUTATE);
 
     if(type_first != type_second)
     {

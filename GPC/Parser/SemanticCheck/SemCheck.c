@@ -53,7 +53,7 @@ int start_semcheck(Tree_t *parse_tree)
     DestroySymTab(symtab);
 
     if(return_val > 0)
-        fprintf(stderr, "Check failed with %d errors!\n", return_val);
+        fprintf(stderr, "Check failed with %d error(s)!\n", return_val);
     else
         fprintf(stderr, "Check successful!\n");
 
@@ -222,10 +222,11 @@ int semcheck_decls(SymTab_t *symtab, ListNode_t *decls)
 /* A return value greater than 0 indicates how many errors occurred */
 int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
 {
-    int return_val, func_return;
+    int return_val, func_return, return_mutated;
     int new_max_scope;
     enum VarType var_type;
     enum TreeType sub_type;
+    HashNode_t *hash_return;
 
     assert(symtab != NULL);
     assert(subprogram != NULL);
@@ -248,6 +249,7 @@ int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
 
         new_max_scope = max_scope_lev+1;
     }
+    /* Function */
     else
     {
         /* Need to additionally extract the return type */
@@ -297,8 +299,19 @@ int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
     }
     else
     {
+        assert(FindIdent(&hash_return, symtab, subprogram->tree_data.subprogram_data.id, NO_MUTATE)
+                    == 0);
+
+        ResetHashNodeStatus(hash_return);
         return_val += semcheck_func_stmt(symtab,
                 subprogram->tree_data.subprogram_data.statement_list);
+        if(hash_return->mutated == NO_MUTATE)
+        {
+            fprintf(stderr,
+                "Error in function %s: no return statement declared in function body!\n\n",
+                subprogram->tree_data.subprogram_data.id);
+            ++return_val;
+        }
     }
 
     PopScope(symtab);

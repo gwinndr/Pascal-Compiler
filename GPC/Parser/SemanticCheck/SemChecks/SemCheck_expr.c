@@ -25,19 +25,19 @@ int is_and_or(int *type);
 int set_type_from_hashtype(int *type, HashNode_t *hash_node);
 
 int semcheck_relop(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating);
 int semcheck_signterm(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating);
 int semcheck_addop(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating);
 int semcheck_mulop(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating);
 int semcheck_varid(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating);
 int semcheck_arrayaccess(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating);
 int semcheck_funccall(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev);
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating);
 
 /* Verifies a type is an INT_TYPE or REAL_TYPE */
 int is_type_ir(int *type)
@@ -79,21 +79,21 @@ int set_type_from_hashtype(int *type, HashNode_t *hash_node)
 
 /* Semantic check on a normal expression */
 int semcheck_expr(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating)
 {
-    semcheck_expr_main(type_return, symtab, expr, max_scope_lev);
+    semcheck_expr_main(type_return, symtab, expr, max_scope_lev, mutating);
 }
 
 /* Semantic check on a function expression (no side effects allowed) */
 int semcheck_expr_func(int *type_return,
-    SymTab_t *symtab, struct Expression *expr)
+    SymTab_t *symtab, struct Expression *expr, int mutating)
 {
-    semcheck_expr_main(type_return, symtab, expr, 0);
+    semcheck_expr_main(type_return, symtab, expr, 0, mutating);
 }
 
 /* Main semantic checking */
 int semcheck_expr_main(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating)
 {
     int return_val;
     assert(symtab != NULL);
@@ -103,31 +103,31 @@ int semcheck_expr_main(int *type_return,
     switch(expr->type)
     {
         case EXPR_RELOP:
-            return_val += semcheck_relop(type_return, symtab, expr, max_scope_lev);
+            return_val += semcheck_relop(type_return, symtab, expr, max_scope_lev, mutating);
             break;
 
         case EXPR_SIGN_TERM:
-            return_val += semcheck_signterm(type_return, symtab, expr, max_scope_lev);
+            return_val += semcheck_signterm(type_return, symtab, expr, max_scope_lev, mutating);
             break;
 
         case EXPR_ADDOP:
-            return_val += semcheck_addop(type_return, symtab, expr, max_scope_lev);
+            return_val += semcheck_addop(type_return, symtab, expr, max_scope_lev, mutating);
             break;
 
         case EXPR_MULOP:
-            return_val += semcheck_mulop(type_return, symtab, expr, max_scope_lev);
+            return_val += semcheck_mulop(type_return, symtab, expr, max_scope_lev, mutating);
             break;
 
         case EXPR_VAR_ID:
-            return_val += semcheck_varid(type_return, symtab, expr, max_scope_lev);
+            return_val += semcheck_varid(type_return, symtab, expr, max_scope_lev, mutating);
             break;
 
         case EXPR_ARRAY_ACCESS:
-            return_val += semcheck_arrayaccess(type_return, symtab, expr, max_scope_lev);
+            return_val += semcheck_arrayaccess(type_return, symtab, expr, max_scope_lev, mutating);
             break;
 
         case EXPR_FUNCTION_CALL:
-            return_val += semcheck_funccall(type_return, symtab, expr, max_scope_lev);
+            return_val += semcheck_funccall(type_return, symtab, expr, max_scope_lev, mutating);
             break;
 
         /*** BASE CASES ***/
@@ -151,7 +151,7 @@ int semcheck_expr_main(int *type_return,
 
 /** RELOP **/
 int semcheck_relop(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating)
 {
     int return_val;
     int type_first, type_second;
@@ -164,9 +164,9 @@ int semcheck_relop(int *type_return,
     expr1 = expr->expr_data.relop_data.left;
     expr2 = expr->expr_data.relop_data.right;
 
-    return_val += semcheck_expr_main(&type_first, symtab, expr1, max_scope_lev);
+    return_val += semcheck_expr_main(&type_first, symtab, expr1, max_scope_lev, mutating);
     if(expr2 != NULL)
-        return_val += semcheck_expr_main(&type_second, symtab, expr2, max_scope_lev);
+        return_val += semcheck_expr_main(&type_second, symtab, expr2, max_scope_lev, mutating);
 
     /* Verifying types */
 
@@ -214,7 +214,7 @@ int semcheck_relop(int *type_return,
 
 /** SIGN_TERM **/
 int semcheck_signterm(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating)
 {
     int return_val;
     struct Expression *sign_expr;
@@ -225,7 +225,7 @@ int semcheck_signterm(int *type_return,
     return_val = 0;
     sign_expr = expr->expr_data.sign_term;
 
-    return_val += semcheck_expr_main(type_return, symtab, sign_expr, max_scope_lev);
+    return_val += semcheck_expr_main(type_return, symtab, sign_expr, max_scope_lev, mutating);
 
     /* Checking types */
     if(!is_type_ir(type_return))
@@ -240,7 +240,7 @@ int semcheck_signterm(int *type_return,
 
 /** ADDOP **/
 int semcheck_addop(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating)
 {
     int return_val;
     int type_first, type_second;
@@ -253,8 +253,8 @@ int semcheck_addop(int *type_return,
     expr1 = expr->expr_data.addop_data.left_expr;
     expr2 = expr->expr_data.addop_data.right_term;
 
-    return_val += semcheck_expr_main(&type_first, symtab, expr1, max_scope_lev);
-    return_val += semcheck_expr_main(&type_second, symtab, expr2, max_scope_lev);
+    return_val += semcheck_expr_main(&type_first, symtab, expr1, max_scope_lev, mutating);
+    return_val += semcheck_expr_main(&type_second, symtab, expr2, max_scope_lev, mutating);
 
     /* Checking types */
     if(type_first != type_second)
@@ -276,7 +276,7 @@ int semcheck_addop(int *type_return,
 
 /** MULOP **/
 int semcheck_mulop(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating)
 {
     int return_val;
     int type_first, type_second;
@@ -289,8 +289,8 @@ int semcheck_mulop(int *type_return,
     expr1 = expr->expr_data.mulop_data.left_term;
     expr2 = expr->expr_data.mulop_data.right_factor;
 
-    return_val += semcheck_expr_main(&type_first, symtab, expr1, max_scope_lev);
-    return_val += semcheck_expr_main(&type_second, symtab, expr2, max_scope_lev);
+    return_val += semcheck_expr_main(&type_first, symtab, expr1, max_scope_lev, mutating);
+    return_val += semcheck_expr_main(&type_second, symtab, expr2, max_scope_lev, mutating);
 
     /* Checking types */
     if(type_first != type_second)
@@ -312,7 +312,7 @@ int semcheck_mulop(int *type_return,
 
 /** VAR_ID **/
 int semcheck_varid(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating)
 {
     int return_val, scope_return;
     char *id;
@@ -324,7 +324,7 @@ int semcheck_varid(int *type_return,
     return_val = 0;
     id = expr->expr_data.id;
 
-    scope_return = FindIdent(&hash_return, symtab, id);
+    scope_return = FindIdent(&hash_return, symtab, id, mutating);
     if(scope_return == -1)
     {
         fprintf(stderr, "Error on line %d, undeclared identifier \"%s\"!\n\n", expr->line_num, id);
@@ -356,7 +356,7 @@ int semcheck_varid(int *type_return,
 
 /** ARRAY_ACCESS **/
 int semcheck_arrayaccess(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating)
 {
     int return_val, scope_return;
     char *id;
@@ -373,7 +373,7 @@ int semcheck_arrayaccess(int *type_return,
 
     /***** FIRST VERIFY ARRAY IDENTIFIER *****/
 
-    scope_return = FindIdent(&hash_return, symtab, id);
+    scope_return = FindIdent(&hash_return, symtab, id, mutating);
     if(scope_return == -1)
     {
         fprintf(stderr, "Error on line %d, undeclared identifier \"%s\"!\n\n", expr->line_num, id);
@@ -401,7 +401,7 @@ int semcheck_arrayaccess(int *type_return,
     }
 
     /***** THEN VERIFY EXPRESSION INSIDE *****/
-    return_val += semcheck_expr_main(&expr_type, symtab, access_expr, max_scope_lev);
+    return_val += semcheck_expr_main(&expr_type, symtab, access_expr, max_scope_lev, NO_MUTATE);
     if(expr_type != INT_TYPE)
     {
         fprintf(stderr, "Error on line %d, expected int in array index expression!\n\n",
@@ -414,7 +414,7 @@ int semcheck_arrayaccess(int *type_return,
 
 /** FUNC_CALL **/
 int semcheck_funccall(int *type_return,
-    SymTab_t *symtab, struct Expression *expr, int max_scope_lev)
+    SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating)
 {
     int return_val, scope_return;
     char *id;
@@ -432,7 +432,7 @@ int semcheck_funccall(int *type_return,
 
     /***** FIRST VERIFY FUNCTION IDENTIFIER *****/
 
-    scope_return = FindIdent(&hash_return, symtab, id);
+    scope_return = FindIdent(&hash_return, symtab, id, mutating);
     if(scope_return == -1)
     {
         fprintf(stderr, "Error on line %d, undeclared identifier %s!\n\n", expr->line_num, id);
@@ -468,7 +468,7 @@ int semcheck_funccall(int *type_return,
             assert(args_given->type == LIST_EXPR);
             assert(true_args->type == LIST_TREE);
             return_val += semcheck_expr_main(&arg_type,
-                symtab, (struct Expression *)args_given->cur, max_scope_lev);
+                symtab, (struct Expression *)args_given->cur, max_scope_lev, NO_MUTATE);
 
             arg_decl = (Tree_t *)true_args->cur;
             assert(arg_decl->type == TREE_VAR_DECL);

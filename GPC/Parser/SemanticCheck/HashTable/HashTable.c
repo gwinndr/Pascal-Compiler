@@ -41,6 +41,8 @@ int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
         hash_node->var_type = var_type;
         hash_node->id = id;
         hash_node->args = args;
+        hash_node->referenced = 0;
+        hash_node->mutated = 0;
 
         table->table[hash] = CreateListNode(hash_node, LIST_UNSPECIFIED);
         return 0;
@@ -63,6 +65,8 @@ int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
         hash_node->var_type = var_type;
         hash_node->id = id;
         hash_node->args = args;
+        hash_node->referenced = 0;
+        hash_node->mutated = 0;
 
         table->table[hash] = PushListNodeFront(list, CreateListNode(hash_node, LIST_UNSPECIFIED));
         return 0;
@@ -70,7 +74,8 @@ int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
 }
 
 /* Searches for the given identifier in the table. Returns NULL if not found */
-HashNode_t *FindIdentInTable(HashTable_t *table, char *id)
+/* Mutating tells whether it's being referenced in an assignment context */
+HashNode_t *FindIdentInTable(HashTable_t *table, char *id, int mutating)
 {
     ListNode_t *list;
     HashNode_t *hash_node;
@@ -88,13 +93,26 @@ HashNode_t *FindIdentInTable(HashTable_t *table, char *id)
         {
             hash_node = (HashNode_t *)list->cur;
             if(strcmp(hash_node->id, id) == 0)
+            {
+                if(mutating == 1)
+                    hash_node->mutated = 1;
+
+                hash_node->referenced = 1;
                 return hash_node;
+            }
 
             list = list->next;
         }
 
         return NULL;
     }
+}
+
+/* Resets hash node mutation and reference status */
+void ResetHashNodeStatus(HashNode_t *hash_node)
+{
+    hash_node->mutated = 0;
+    hash_node->referenced = 0;
 }
 
 /* Frees any and all allocated ListNode_t pointers */
