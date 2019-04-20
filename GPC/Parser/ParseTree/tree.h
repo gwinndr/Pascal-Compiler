@@ -11,8 +11,71 @@
 #include "tree_types.h"
 #include <stdio.h>
 
+/******* Trees and statement types ********/
+
 /* Types */
 typedef struct Tree Tree_t;
+
+/* Enum for readability */
+enum TreeType{TREE_PROGRAM_TYPE, TREE_SUBPROGRAM, TREE_VAR_DECL, TREE_ARR_DECL,
+    TREE_STATEMENT_TYPE, TREE_SUBPROGRAM_PROC, TREE_SUBPROGRAM_FUNC};
+
+typedef struct Tree
+{
+    int line_num;
+    int type;
+    union tree_data
+    {
+        /* Program Variables */
+        struct Program
+        {
+            char *program_id;
+
+            ListNode_t *args_char;
+            ListNode_t *var_declaration;
+            ListNode_t *subprograms;
+            struct Statement *body_statement;
+        } program_data;
+
+        /* A subprogram */
+        struct Subprogram
+        {
+            /* FUNCTION or PROCEDURE */
+            enum TreeType sub_type;
+            char *id;
+            ListNode_t *args_var;
+            int return_type; /* Should be -1 for PROCEDURE */
+
+            ListNode_t *declarations;
+            ListNode_t *subprograms;
+            struct Statement *statement_list;
+        } subprogram_data;
+
+        /* A variable declaration */
+        /* Also used for variable arguments */
+        struct Var
+        {
+            ListNode_t *ids;
+            int type; /* Int, or real */
+        } var_decl_data;
+
+        /* An array declaration */
+        /* Also used for array arguments */
+        struct Array
+        {
+            ListNode_t *ids;
+            int type; /* Int, or real */
+
+            int s_range;
+            int e_range;
+        } arr_decl_data;
+
+        /* A single statement (Can be made up of multiple statements) */
+        /* See "tree_types.h" for details */
+        struct Statement *statement_data;
+
+    } tree_data;
+} Tree_t;
 
 /* GLOBAL TREE */
 Tree_t *parse_tree;
@@ -86,70 +149,5 @@ struct Expression *mk_functioncall(int line_num, char *id, ListNode_t *args);
 struct Expression *mk_inum(int line_num, int i_num);
 
 struct Expression *mk_rnum(int line_num, float r_num);
-
-
-/******* Trees and statement types ********/
-/* Enum for readability */
-enum TreeType{TREE_PROGRAM_TYPE, TREE_SUBPROGRAM, TREE_VAR_DECL, TREE_ARR_DECL,
-    TREE_STATEMENT_TYPE, TREE_SUBPROGRAM_PROC, TREE_SUBPROGRAM_FUNC};
-
-typedef struct Tree
-{
-    int line_num;
-    int type;
-    union tree_data
-    {
-        /* Program Variables */
-        struct Program
-        {
-            char *program_id;
-
-            ListNode_t *args_char;
-            ListNode_t *var_declaration;
-            ListNode_t *subprograms;
-            struct Statement *body_statement;
-        } program_data;
-
-        /* A subprogram */
-        struct Subprogram
-        {
-            /* FUNCTION or PROCEDURE */
-            enum TreeType sub_type;
-            char *id;
-            ListNode_t *args_var;
-            int return_type; /* Should be -1 for PROCEDURE */
-
-            ListNode_t *declarations;
-            ListNode_t *subprograms;
-            struct Statement *statement_list;
-        } subprogram_data;
-
-        /* A variable declaration */
-        /* Also used for variable arguments */
-        struct Var
-        {
-            ListNode_t *ids;
-            int type; /* Int, or real */
-        } var_decl_data;
-
-        /* An array declaration */
-        /* Also used for array arguments */
-        struct Array
-        {
-            ListNode_t *ids;
-            int type; /* Int, or real */
-
-            int s_range;
-            int e_range;
-        } arr_decl_data;
-
-        /* A single statement (Can be made up of multiple statements) */
-        /* See "tree_types.h" for details */
-        struct Statement *statement_data;
-
-    } tree_data;
-} Tree_t;
-
-
 
 #endif

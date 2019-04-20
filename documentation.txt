@@ -1,0 +1,19 @@
+Damon Gwinn
+Gwinn Pascal Compiler (GPC)
+
+Last modified 4-20-19
+
+Parser and Grammar:
+    All code parses correctly into a parse tree. Parse tree contains information about
+    programs, statements, and expressions. The line number associated with the tree node
+    is provided for semantic checking purposes.
+
+    See tree.h and tree_types.h for the explicit structure of a parse tree.
+
+    TODO:
+        - Some line numbers are buggy, requires grammar editing
+        - No mod or div operators yet
+        - Function return checking is not robust (doesn't check if outside if-else, etc.)
+
+Code Generation (64-bit Intel x86):
+    Work in progress
