@@ -23,6 +23,11 @@ Parser and Grammar:
         The first is placed in rdi, the second in rsi, the third in rdx, and then rcx, r8 and r9.
         All future arguments placed on the stack
 
+    Division:
+        First put value in dividend (top part) into RAX register. Then sign extend it into
+        RDX:RAX using cltd instruction. Finally call idivl on the divisor.
+        Quotient is stored in RAX, remainder is stored in RDX.
+
 
 NOTES ON GCC:
     example header:
@@ -34,7 +39,7 @@ NOTES ON GCC:
         .text
         .globl	main
         .type	main, @function
-        
+
     Note that the .globl and .type seem to define which function generated the label
     and not necessarily who can call it (tested by changing the names to another func)
 

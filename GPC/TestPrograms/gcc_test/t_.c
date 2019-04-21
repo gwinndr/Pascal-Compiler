@@ -19,11 +19,6 @@ void test2()
 
 int main()
 {
-    int x;
-
-    x = 13;
-    printf("%d\n", x);
-
     test();
     test2();
 }

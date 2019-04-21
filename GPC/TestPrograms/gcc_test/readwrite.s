@@ -1,50 +1,59 @@
-	.file	"t_.c"
+	.file	"readwrite.c"
 	.text
 	.section	.rodata
 .LC0:
+	.string	"%d"
+	.text
+	.globl	read
+	.type	read, @function
+read:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	subq	$16, %rsp
+	movq	%fs:40, %rax
+	movq	%rax, -8(%rbp)
+	leaq	-12(%rbp), %rax
+	movq	%rax, %rsi
+	leaq	.LC0(%rip), %rdi
+	movl	$0, %eax
+	call	__isoc99_scanf@PLT
+	nop
+	movq	-8(%rbp), %rax
+	jmp	.L2
+	call	__stack_chk_fail@PLT
+.L2:
+	leave
+	ret
+	.size	read, .-read
+	.section	.rodata
+.LC1:
 	.string	"%d\n"
 	.text
-	.globl	test
-	.type	test, @function
-test:
+	.globl	write
+	.type	write, @function
+write:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	subq	$16, %rsp
-	movl	$12, -4(%rbp)
+	movl	$5, -4(%rbp)
 	movl	-4(%rbp), %eax
 	movl	%eax, %esi
-	leaq	.LC0(%rip), %rdi
+	leaq	.LC1(%rip), %rdi
 	movl	$0, %eax
 	call	printf@PLT
 	nop
 	leave
 	ret
-	.size	test, .-test
-	.globl	test2
-	.type	test2, @function
-test2:
-	pushq	%rbp
-	movq	%rsp, %rbp
-	subq	$16, %rsp
-	movl	$28, -4(%rbp)
-	movl	-4(%rbp), %eax
-	movl	%eax, %esi
-	leaq	.LC0(%rip), %rdi
-	movl	$0, %eax
-	call	printf@PLT
-	nop
-	leave
-	ret
-	.size	test2, .-test2
+	.size	write, .-write
 	.globl	main
 	.type	main, @function
 main:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	movl	$0, %eax
-	call	test
+	call	read
 	movl	$0, %eax
-	call	test2
+	call	write
 	movl	$0, %eax
 	popq	%rbp
 	ret
