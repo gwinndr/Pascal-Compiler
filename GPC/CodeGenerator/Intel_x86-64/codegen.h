@@ -15,6 +15,8 @@
             - Support generalized reading and writing
             - Support real numbers
             - Support temporary block reuse
+            - Support RAX, RDX, and RCX as general purpose registers
+            - Support registers r8-15 as general purpose registers
 
         LOW ADDRESSES
         ============
@@ -30,7 +32,26 @@
         ============
         HIGH ADDRESSES
 
-    NOTE: Add arguements, then locals, then temps to avoid copying
+    NOTE: Add arguments, then locals, then temps to avoid copying
+
+    GENERAL PURPOSE REGISTERS:
+        - RBX
+        - RDI
+        - RSI
+
+    SPECIAL REGISTERS:
+        - RSP (Stack pointer)
+        - RBP (Base pointer)
+
+    REGISTER CONVENTIONS
+        - RAX for returns
+        - RAX and RDX for division (div in RAX, mod in RDX)
+            - Dividend in RAX, divisor in RDX
+        - RCX used for base pointer chasing (var in different scope)
+
+    ARGUMENT CONVENTIONS:
+        The first is placed in rdi, the second in rsi, the third in rdx, and then rcx, r8 and r9.
+        All future arguments placed on the stack
 
     STACK MANAGEMENT:
         A stack management structure will be utilized (see stackmng.h)
@@ -46,7 +67,6 @@
                 - t blocks in use with labels and offsets
                 - StackScope pointer to previous scope
             - Register stack of free registers
-            - Registers in use with labels
 
     INSTRUCTION LAYOUT:
         The first section of instructions for a function is known as the "prologue."

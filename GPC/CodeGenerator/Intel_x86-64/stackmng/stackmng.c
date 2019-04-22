@@ -21,6 +21,7 @@ void init_stackmng()
     global_stackmng = (stackmng_t *)malloc(sizeof(stackmng_t));
 
     global_stackmng->cur_scope = NULL;
+    global_stackmng->reg_stack = init_reg_stack();
 }
 
 int get_full_stack_offset()
@@ -229,8 +230,119 @@ void free_stackmng()
     assert(global_stackmng != NULL);
 
     free_all_stackscopes(global_stackmng->cur_scope);
+    free_reg_stack(global_stackmng->reg_stack);
     free(global_stackmng);
     global_stackmng = NULL;
+}
+
+
+/********* RegStack_t **********/
+
+RegStack_t *init_reg_stack()
+{
+    /* See codegen.h for information on available general purpose registers */
+    ListNode_t *registers;
+
+    RegStack_t *reg_stack;
+    reg_stack = (RegStack_t *)malloc(sizeof(RegStack_t));
+
+    /* RBX */
+    Register_t *rbx;
+    rbx = (Register_t *)malloc(sizeof(Register_t));
+    rbx->bit_64 = strdup("%%rbx");
+    rbx->bit_32 = strdup("%%ebx");
+
+    /* RDI */
+    Register_t *rdi;
+    rdi = (Register_t *)malloc(sizeof(Register_t));
+    rdi->bit_64 = strdup("%%rdi");
+    rdi->bit_32 = strdup("%%edi");
+
+    /* RSI */
+    Register_t *rsi;
+    rsi = (Register_t *)malloc(sizeof(Register_t));
+    rsi->bit_64 = strdup("%%rsi");
+    rsi->bit_32 = strdup("%%esi");
+
+
+    registers = CreateListNode(rbx, LIST_UNSPECIFIED);
+    registers = PushListNodeBack(registers, CreateListNode(rdi, LIST_UNSPECIFIED));
+    registers = PushListNodeBack(registers, CreateListNode(rsi, LIST_UNSPECIFIED));
+
+    reg_stack->num_registers_alloced = 0;
+    reg_stack->registers_free = registers;
+
+    return reg_stack;
+}
+
+void push_reg_stack(RegStack_t *reg_stack, Register_t *reg)
+{
+    assert(reg_stack != NULL);
+    assert(reg != NULL);
+
+    reg_stack->num_registers_alloced--;
+
+    if(reg_stack->registers_free == NULL)
+    {
+        reg_stack->registers_free = CreateListNode(reg, LIST_UNSPECIFIED);
+    }
+
+    else
+    {
+        reg_stack->registers_free = PushListNodeBack(reg_stack->registers_free,
+            CreateListNode(reg, LIST_UNSPECIFIED));
+    }
+}
+
+Register_t *pop_reg_stack(RegStack_t *reg_stack)
+{
+    assert(reg_stack != NULL);
+
+    ListNode_t *register_node;
+    Register_t *reg;
+
+    if(reg_stack->registers_free != NULL)
+    {
+        reg_stack->num_registers_alloced++;
+
+        register_node = reg_stack->registers_free;
+        reg_stack->registers_free = reg_stack->registers_free->next;
+
+        reg = (Register_t *)register_node->cur;
+        free(register_node);
+
+        return reg;
+    }
+    else
+        return NULL;
+}
+
+void free_reg_stack(RegStack_t *reg_stack)
+{
+    assert(reg_stack != NULL);
+
+    if(reg_stack->num_registers_alloced != 0)
+    {
+        fprintf(stderr, "WARNING: Not all registers freed, %d still remaining!\n",
+            reg_stack->num_registers_alloced);
+    }
+
+    ListNode_t *cur;
+    Register_t *reg;
+    while(reg_stack->registers_free != NULL)
+    {
+        cur = reg_stack->registers_free;
+        reg_stack->registers_free = cur->next;
+
+        reg = (Register_t *)cur->cur;
+
+        free(reg->bit_64);
+        free(reg->bit_32);
+        free(reg);
+        free(cur);
+    }
+
+    free(reg_stack);
 }
 
 
@@ -264,9 +376,9 @@ StackScope_t *free_stackscope(StackScope_t *stackscope)
     {
         prev_scope = stackscope->prev_scope;
 
-        DestroyList(stackscope->t);
-        DestroyList(stackscope->x);
-        DestroyList(stackscope->z);
+        free_stackscope_list(stackscope->t);
+        free_stackscope_list(stackscope->x);
+        free_stackscope_list(stackscope->z);
         free(stackscope);
     }
     return prev_scope;
@@ -303,6 +415,8 @@ void free_stackscope_list(ListNode_t *li)
 }
 
 /*********** StackNode *************/
+
+/* WARNING: Copy is made of label */
 StackNode_t *init_stack_node(int offset, char *label, int size)
 {
     assert(label != NULL);

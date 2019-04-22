@@ -2,7 +2,9 @@
     Damon Gwinn
     Stack Manager structure (see codegen.h for details)
 
-    TODO: Turns linked lists into hash table of linked lists
+    TODO:
+        - Turns linked lists into hash table of linked lists
+        - Support 16 and 8 bit registers
 */
 #ifndef STACK_MNG_H
 #define STACK_MNG_H
@@ -16,12 +18,15 @@
 
 typedef struct StackScope StackScope_t;
 typedef struct StackNode StackNode_t;
+typedef struct RegStack RegStack_t;
+typedef struct Register Register_t;
 
 /****** stackmng *******/
 typedef struct stackmng
 {
     /* Still in progress */
     StackScope_t *cur_scope;
+    RegStack_t *reg_stack;
 
 } stackmng_t;
 
@@ -36,7 +41,31 @@ StackNode_t *add_l_z(char *);
 StackNode_t *find_label(char *);
 void free_stackmng();
 
+/********* RegStack_t **********/
+
+typedef struct RegStack
+{
+    ListNode_t *registers_free;
+    int num_registers_alloced;
+} RegStack_t;
+
+RegStack_t *init_reg_stack();
+
+void push_reg_stack(RegStack_t *, Register_t *);
+Register_t *pop_reg_stack(RegStack_t *);
+
+void free_reg_stack(RegStack_t *);
+
+/********* Register_t **********/
+typedef struct Register
+{
+    char *bit_64;
+    char *bit_32;
+} Register_t;
+
+
 /********* StackScope_t **********/
+
 typedef struct StackScope
 {
     int t_offset, x_offset, z_offset;

@@ -315,6 +315,7 @@ ListNode_t *codegen_function_body(struct Statement *stmt, FILE *o_file)
 /* Code generation for a variable assignment */
 ListNode_t *codegen_var_assignment(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
 {
+    ListNode_t *char_vec;
 
     return inst_list;
 }
