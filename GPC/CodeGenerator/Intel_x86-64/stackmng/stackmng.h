@@ -1,6 +1,8 @@
 /*
     Damon Gwinn
     Stack Manager structure (see codegen.h for details)
+
+    TODO: Turns linked lists into hash table of linked lists
 */
 #ifndef STACK_MNG_H
 #define STACK_MNG_H
@@ -13,6 +15,7 @@
 #define DOUBLEWORD 4
 
 typedef struct StackScope StackScope_t;
+typedef struct StackNode StackNode_t;
 
 /****** stackmng *******/
 typedef struct stackmng
@@ -24,11 +27,13 @@ typedef struct stackmng
 
 void init_stackmng();
 int get_full_stack_offset();
+int get_needed_stack_space();
 void push_stackscope();
 void pop_stackscope();
-void add_l_t(char *);
-void add_l_x(char *);
-void add_l_z(char *);
+StackNode_t *add_l_t(char *);
+StackNode_t *add_l_x(char *);
+StackNode_t *add_l_z(char *);
+StackNode_t *find_label(char *);
 void free_stackmng();
 
 /********* StackScope_t **********/
@@ -54,7 +59,7 @@ typedef struct StackNode
     int size;
 } StackNode_t;
 
-/* WARNING: init_stack_node makes copy of give label */
+/* WARNING: init_stack_node makes copy of given label */
 StackNode_t *init_stack_node(int offset, char *label, int size);
 void destroy_stack_node(StackNode_t *);
 

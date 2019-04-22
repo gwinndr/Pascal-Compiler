@@ -35,6 +35,17 @@ int get_full_stack_offset()
         scope->t_offset + scope->x_offset + scope->z_offset;
 }
 
+int get_needed_stack_space()
+{
+    assert(global_stackmng != NULL);
+    assert(global_stackmng->cur_scope != NULL);
+    StackScope_t *scope;
+
+    scope = global_stackmng->cur_scope;
+
+    return scope->t_offset + scope->x_offset + scope->z_offset;
+}
+
 void push_stackscope()
 {
     assert(global_stackmng != NULL);
@@ -55,7 +66,7 @@ void pop_stackscope()
 }
 
 /* Adds doubleword to t */
-void add_l_t(char *label)
+StackNode_t *add_l_t(char *label)
 {
     assert(global_stackmng != NULL);
     assert(global_stackmng->cur_scope != NULL);
@@ -86,10 +97,12 @@ void add_l_t(char *label)
     #ifdef DEBUG_CODEGEN
         fprintf(stderr, "DEBUG: Added %s to t_offset %d\n", label, offset);
     #endif
+
+    return new_node;
 }
 
 /* Adds doubleword to x */
-void add_l_x(char *label)
+StackNode_t *add_l_x(char *label)
 {
     assert(global_stackmng != NULL);
     assert(global_stackmng->cur_scope != NULL);
@@ -120,10 +133,12 @@ void add_l_x(char *label)
     #ifdef DEBUG_CODEGEN
         fprintf(stderr, "DEBUG: Added %s to x_offset %d\n", label, offset);
     #endif
+
+    return new_node;
 }
 
 /* Adds doubleword to z */
-void add_l_z(char *label)
+StackNode_t *add_l_z(char *label)
 {
     assert(global_stackmng != NULL);
     assert(global_stackmng->cur_scope != NULL);
@@ -154,6 +169,59 @@ void add_l_z(char *label)
     #ifdef DEBUG_CODEGEN
         fprintf(stderr, "DEBUG: Added %s to z_offset %d\n", label, offset);
     #endif
+
+    return new_node;
+}
+
+/* TODO: Does not find variables outside the current scope */
+StackNode_t *find_label(char *label)
+{
+    assert(global_stackmng != NULL);
+    assert(global_stackmng->cur_scope != NULL);
+
+    StackScope_t *cur_scope;
+    ListNode_t *cur_li;
+    StackNode_t *cur_node;
+
+    cur_scope = global_stackmng->cur_scope;
+
+    cur_li = cur_scope->z;
+    while(cur_li != NULL)
+    {
+        cur_node = (StackNode_t *)cur_li->cur;
+        if(strcmp(cur_node->label, label))
+        {
+            return cur_node;
+        }
+
+        cur_li = cur_li->next;
+    }
+    cur_li = cur_scope->x;
+    while(cur_li != NULL)
+    {
+        cur_node = (StackNode_t *)cur_li->cur;
+        if(strcmp(cur_node->label, label))
+        {
+            return cur_node;
+        }
+
+        cur_li = cur_li->next;
+    }
+    cur_li = cur_scope->t;
+    while(cur_li != NULL)
+    {
+        cur_node = (StackNode_t *)cur_li->cur;
+        if(strcmp(cur_node->label, label))
+        {
+            return cur_node;
+        }
+
+        cur_li = cur_li->next;
+    }
+
+    /* Should never get here */
+    fprintf(stderr, "Critical error: Could not find variable on stackmng!\n");
+    assert(0);
 }
 
 void free_stackmng()

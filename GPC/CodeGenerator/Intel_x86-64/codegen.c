@@ -9,12 +9,47 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "codegen.h"
 #include "stackmng/stackmng.h"
 #include "../../Parser/List/List.h"
 #include "../../Parser/ParseTree/tree.h"
 #include "../../Parser/ParseTree/tree_types.h"
 #include "../../Parser/LexAndYacc/y.tab.h"
+
+/* Adds instruction to instruction list */
+/* WARNING: Makes copy of given char * */
+ListNode_t *add_inst(ListNode_t *inst_list, char *inst)
+{
+    ListNode_t *new_node;
+
+    new_node = CreateListNode(strdup(inst), LIST_STRING);
+    if(inst_list == NULL)
+    {
+        inst_list = new_node;
+    }
+    else
+    {
+        PushListNodeBack(inst_list, new_node);
+    }
+
+    return inst_list;
+}
+
+/* Frees instruction list */
+void free_inst_list(ListNode_t *inst_list)
+{
+    ListNode_t *cur;
+
+    cur = inst_list;
+    while(cur != NULL)
+    {
+        free(cur->cur);
+        cur = cur->next;
+    }
+
+    DestroyList(inst_list);
+}
 
 /* Generates a function header */
 void codegen_function_header(char *func_name, FILE *o_file)
@@ -37,12 +72,13 @@ void codegen_function_header(char *func_name, FILE *o_file)
 void codegen_function_footer(char *func_name, FILE *o_file)
 {
     /*
-        popq    %rbp
+        nop
+        leave
         ret
         .size	<func_name>, .-<func_name>
     */
 
-    fprintf(o_file, "\tpopq\t%%rbp\n\tret\n");
+    fprintf(o_file, "\tnop\n\tleave\n\tret\n");
     fprintf(o_file, "\t.size\t%s, .-%s\n", func_name, func_name);
 
     return;
@@ -99,6 +135,19 @@ void codegen_program_header(char *fname, FILE *o_file)
     return;
 }
 
+/* Generates the footer of the whole program */
+/* TODO: Fix footer to reflect true gcc and os type */
+void codegen_program_footer(FILE *o_file)
+{
+    /*
+        .ident	"<Identifications>"
+    	.section	.note.GNU-stack,"",@progbits
+    */
+
+    fprintf(o_file, ".ident\t\"GPC: 0.0.0\"\n");
+    fprintf(o_file, ".section\t.note.GNU-stack,\"\",@progbits\n");
+}
+
 /* Generates main which calls our program */
 void codegen_main(char *prgm_name, FILE *o_file)
 {
@@ -107,26 +156,45 @@ void codegen_main(char *prgm_name, FILE *o_file)
             movl	$0, %eax
             call	<prgm_name>
             movl	$0, %eax
-            FOOTER
+            popq    %rbp
+            ret
     */
     codegen_function_header("main", o_file);
 
     fprintf(o_file, "\tmovl\t$0, %%eax\n\tcall\t%s\n\tmovl\t$0, %%eax\n", prgm_name);
-
-    codegen_function_footer("main", o_file);
+    fprintf(o_file, "\tpopq\t%%rbp\n\tret\n");
+    fprintf(o_file, "\t.size\t%s, .-%s\n", "main", "main");
 }
 
-/* Generates the footer of the whole program */
-/* TODO: Fix footer to reflect true gcc and os type */
-void codegen_program_footer(FILE *o_file)
+/* Generates code to allocate needed stack space */
+void codegen_stack_space(FILE *o_file)
 {
-    /*
-        .ident	"GCC: (Ubuntu 5.4.0-6ubuntu1~16.04.11) 5.4.0 20160609"
-    	.section	.note.GNU-stack,"",@progbits
-    */
+    int needed_space;
+    needed_space = get_needed_stack_space();
+    assert(needed_space >= 0);
 
-    fprintf(o_file, ".ident\t\"GCC: (Ubuntu 5.4.0-6ubuntu1~16.04.11) 5.4.0 20160609\"\n");
-    fprintf(o_file, ".section\t.note.GNU-stack,\"\",@progbits\n");
+    if(needed_space != 0)
+    {
+        /* subq	$<needed_space>, %rsp */
+        fprintf(o_file, "\tsubq\t$%d, %%rsp\n", needed_space);
+    }
+}
+
+/* Writes instruction list to file */
+/* A NULL inst_list is interpreted as no instructions */
+void codegen_inst_list(ListNode_t *inst_list, FILE *o_file)
+{
+    char *inst;
+
+    while(inst_list != NULL)
+    {
+        inst = (char *)inst_list->cur;
+        assert(inst != NULL);
+
+        fprintf(o_file, "%s", inst);
+
+        inst_list = inst_list->next;
+    }
 }
 
 
@@ -151,7 +219,11 @@ char * codegen_program(Tree_t *prgm, FILE *o_file)
 
     /* TODO */
     codegen_function_locals(data->var_declaration, o_file);
+
     inst_list = codegen_function_body(data->body_statement, o_file);
+
+    codegen_stack_space(o_file);
+    codegen_inst_list(inst_list, o_file);
 
     codegen_function_footer(prgm_name, o_file);
 
@@ -194,5 +266,61 @@ void codegen_function_locals(ListNode_t *local_decl, FILE *o_file)
 /* Returns a list of instructions */
 ListNode_t *codegen_function_body(struct Statement *stmt, FILE *o_file)
 {
+    assert(stmt != NULL);
+    assert(stmt->type == STMT_COMPOUND_STATEMENT);
 
+    ListNode_t *inst_list, *stmt_list, *comp_list;
+    struct Statement *cur_stmt;
+
+    inst_list = NULL;
+    stmt_list = stmt->stmt_data.compound_statement;
+
+    while(stmt_list != NULL)
+    {
+        cur_stmt = (struct Statement *)stmt_list->cur;
+
+        switch(cur_stmt->type)
+        {
+            case STMT_VAR_ASSIGN:
+                inst_list = codegen_var_assignment(cur_stmt, inst_list, o_file);
+                break;
+
+            case STMT_PROCEDURE_CALL:
+                inst_list = codegen_proc_call(cur_stmt, inst_list, o_file);
+                break;
+
+            case STMT_COMPOUND_STATEMENT:
+                comp_list = codegen_function_body(cur_stmt, o_file);
+                if(inst_list == NULL)
+                    inst_list = comp_list;
+                else
+                    inst_list = PushListNodeBack(inst_list, comp_list);
+                    
+                break;
+
+            default:
+                fprintf(stderr, "Critical error: Unrecognized statement type in codegen\n");
+                assert(0);
+        }
+
+        stmt_list = stmt_list->next;
+    }
+
+    return inst_list;
+}
+
+
+/* Code generation for a variable assignment */
+ListNode_t *codegen_var_assignment(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
+{
+
+    return inst_list;
+}
+
+/* Code generation for a procedure call */
+/* NOTE: This function will also recognize builtin procedures */
+ListNode_t *codegen_proc_call(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
+{
+
+    return inst_list;
 }

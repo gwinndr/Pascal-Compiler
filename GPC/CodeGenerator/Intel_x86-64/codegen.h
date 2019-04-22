@@ -90,9 +90,14 @@ void codegen(Tree_t *, char *input_file_name, char *output_file_name);
 void codegen_program_header(char *, FILE *);;
 void codegen_program_footer(FILE *);
 void codegen_main(char *prgm_name, FILE *o_file);
+void codegen_stack_space(FILE *);
+void codegen_inst_list(ListNode_t *, FILE *);
 
 char * codegen_program(Tree_t *, FILE *);
 void codegen_function_locals(ListNode_t *, FILE *);
 ListNode_t *codegen_function_body(struct Statement *, FILE *);
+
+ListNode_t *codegen_var_assignment(struct Statement *, ListNode_t *, FILE *);
+ListNode_t *codegen_proc_call(struct Statement *, ListNode_t *, FILE *);
 
 #endif
