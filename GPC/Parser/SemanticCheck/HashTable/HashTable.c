@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <string.h>
 #include "../../List/List.h"
+#include "../../ParseTree/tree.h"
 #include "HashTable.h"
 
 /* Gives a new hash tables with NULL'd out list pointers */
