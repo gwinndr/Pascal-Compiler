@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 
-/* Careful with using LIST_UNTYPED. Can cause errors on switch statements */
+/* Careful with using LIST_UNSPECIFIED. Can cause errors on switch statements */
 enum ListType{LIST_TREE, LIST_STMT, LIST_EXPR, LIST_STRING,
               LIST_UNSPECIFIED};
 

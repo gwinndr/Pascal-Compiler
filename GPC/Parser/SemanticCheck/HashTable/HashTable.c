@@ -127,6 +127,10 @@ void DestroyHashTable(HashTable_t *table)
         cur = table->table[i];
         while(cur != NULL)
         {
+            hash_node = (HashNode_t *)cur->cur;
+            if(hash_node->hash_type == HASHTYPE_BUILTIN_PROCEDURE)
+                DestroyBuiltin(hash_node);
+
             free(cur->cur);
             temp = cur->next;
             free(cur);
@@ -135,6 +139,16 @@ void DestroyHashTable(HashTable_t *table)
         }
     }
     free(table);
+}
+
+/* Destroys special builtin procedure addons */
+void DestroyBuiltin(HashNode_t *node)
+{
+    assert(node != NULL);
+    assert(node->hash_type == HASHTYPE_BUILTIN_PROCEDURE);
+
+    free(node->id);
+    destroy_list(node->args);
 }
 
 /* Prints all entries in the HashTable */

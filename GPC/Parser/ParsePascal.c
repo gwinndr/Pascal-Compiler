@@ -19,7 +19,7 @@ extern int yyparse();
 /* Initializes parser globals */
 void InitParser();
 
-int ParsePascal(char *file)
+Tree_t *ParsePascal(char *file)
 {
     int semcheck_return;
 
@@ -48,10 +48,13 @@ int ParsePascal(char *file)
     /**** SEMANTIC CHECKING ****/
     semcheck_return = start_semcheck(parse_tree);
 
-    destroy_tree(parse_tree);
-    parse_tree = NULL;
+    if(semcheck_return > 0)
+    {
+        destroy_tree(parse_tree);
+        parse_tree = NULL;
+    }
 
-    return 0;
+    return parse_tree;
 }
 
 void InitParser()

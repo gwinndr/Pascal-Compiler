@@ -15,7 +15,7 @@
 #include "../../List/List.h"
 
 enum HashType{HASHTYPE_VAR, HASHTYPE_ARRAY, HASHTYPE_PROCEDURE, HASHTYPE_FUNCTION,
-    HASHTYPE_FUNCTION_RETURN};
+    HASHTYPE_FUNCTION_RETURN, HASHTYPE_BUILTIN_PROCEDURE};
 enum VarType{HASHVAR_INTEGER, HASHVAR_REAL, HASHVAR_PROCEDURE, HASHVAR_UNTYPED};
 
 /* Items we put in the hash table */
@@ -56,6 +56,9 @@ void ResetHashNodeStatus(HashNode_t *hash_node);
 
 /* Frees any and all allocated ListNode_t pointers */
 void DestroyHashTable(HashTable_t *table);
+
+/* Destroys special builtin procedure addons */
+void DestroyBuiltin(HashNode_t *);
 
 /* Prints all entries in the HashTable */
 void PrintHashTable(HashTable_t *table, FILE *f, int num_indent);

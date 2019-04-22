@@ -8,7 +8,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "ParseTree/tree.h"
 
-int ParsePascal(char *file);
+Tree_t *ParsePascal(char *file);
 
 #endif

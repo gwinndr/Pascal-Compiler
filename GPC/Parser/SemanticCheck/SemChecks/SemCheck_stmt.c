@@ -156,9 +156,10 @@ int semcheck_proccall(SymTab_t *symtab, struct Statement *stmt, int max_scope_le
 
             ++return_val;
         }
-        if(sym_return->hash_type != HASHTYPE_PROCEDURE)
+        if(sym_return->hash_type != HASHTYPE_PROCEDURE &&
+            sym_return->hash_type != HASHTYPE_BUILTIN_PROCEDURE)
         {
-            fprintf(stderr, "Error on line %d, expected %s to be a procedure!\n",
+            fprintf(stderr, "Error on line %d, expected %s to be a procedure or builtin!\n",
                 stmt->line_num, (char *)stmt->stmt_data.procedure_call_data.id);
 
             ++return_val;

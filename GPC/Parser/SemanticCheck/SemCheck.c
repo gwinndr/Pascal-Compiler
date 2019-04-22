@@ -24,7 +24,19 @@
 #include "../LexAndYacc/y.tab.h"
 
 /* Adds built-in functions */
-int semcheck_add_builtins(SymTab_t *symtab);
+void semcheck_add_builtins(SymTab_t *symtab);
+
+/* Main is a special keyword at the moment for code generation */
+int semcheck_id_not_main(char *id)
+{
+    if(strcmp(id, "main") == 0)
+    {
+        fprintf(stderr, "ERROR: main is special keyword, it cannot be a program, or subprogram\n");
+        return 1;
+    }
+
+    return 0;
+}
 
 int semcheck_program(SymTab_t *symtab, Tree_t *tree);
 
@@ -61,7 +73,7 @@ int start_semcheck(Tree_t *parse_tree)
 }
 
 /* Adds built-in functions */
-int semcheck_add_builtins(SymTab_t *symtab)
+void semcheck_add_builtins(SymTab_t *symtab)
 {
     char *id;
     ListNode_t *args;
@@ -81,7 +93,6 @@ int semcheck_add_builtins(SymTab_t *symtab)
     args = CreateListNode(mk_vardecl(-1, NULL, BUILTIN_ANY_TYPE), LIST_TREE);
 
     AddBuiltinProc(symtab, id, args);
-
 }
 
 /* Semantic check for a program */
@@ -96,6 +107,8 @@ int semcheck_program(SymTab_t *symtab, Tree_t *tree)
     return_val = 0;
 
     PushScope(symtab);
+
+    return_val += semcheck_id_not_main(tree->tree_data.program_data.program_id);
 
     /* TODO: Push program name onto scope */
 
@@ -234,6 +247,8 @@ int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
 
     sub_type = subprogram->tree_data.subprogram_data.sub_type;
     assert(sub_type == TREE_SUBPROGRAM_PROC || sub_type == TREE_SUBPROGRAM_FUNC);
+
+    return_val += semcheck_id_not_main(subprogram->tree_data.subprogram_data.id);
 
     /**** FIRST PLACING SUBPROGRAM ON THE CURRENT SCOPE ****/
     return_val = 0;

@@ -35,7 +35,7 @@ int AddBuiltinProc(SymTab_t *symtab, char *id, ListNode_t *args)
     assert(id != NULL);
 
     return AddIdentToTable(symtab->builtins, id,
-            HASHVAR_PROCEDURE, HASHTYPE_PROCEDURE, args);
+            HASHVAR_PROCEDURE, HASHTYPE_BUILTIN_PROCEDURE, args);
 }
 
 /* Pushes a new scope onto the stack (FIFO) */
