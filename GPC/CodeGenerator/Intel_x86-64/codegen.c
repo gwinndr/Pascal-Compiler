@@ -227,6 +227,8 @@ char * codegen_program(Tree_t *prgm, FILE *o_file)
 
     codegen_function_footer(prgm_name, o_file);
 
+    free_inst_list(inst_list);
+
     pop_stackscope();
 
     return prgm_name;
@@ -295,7 +297,7 @@ ListNode_t *codegen_function_body(struct Statement *stmt, FILE *o_file)
                     inst_list = comp_list;
                 else
                     inst_list = PushListNodeBack(inst_list, comp_list);
-                    
+
                 break;
 
             default:
