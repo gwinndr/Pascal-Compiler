@@ -28,6 +28,12 @@ Parser and Grammar:
         RDX:RAX using cltd instruction. Finally call idivl on the divisor.
         Quotient is stored in RAX, remainder is stored in RDX.
 
+    printf and scanf:
+        First read string from appropriate label into RDI, then put target variable into
+        RSI. This is for one-variable reads and writes, look at codegen.h for more details
+
+    Please see codegen.h for stack structure information
+
 
 NOTES ON GCC:
     example header:

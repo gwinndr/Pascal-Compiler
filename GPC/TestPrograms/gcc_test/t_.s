@@ -1,5 +1,4 @@
 	.file	"t_.c"
-	.text
 	.section	.rodata
 .LC0:
 	.string	"%d\n"
@@ -13,9 +12,9 @@ test:
 	movl	$12, -4(%rbp)
 	movl	-4(%rbp), %eax
 	movl	%eax, %esi
-	leaq	.LC0(%rip), %rdi
+	movl	$.LC0, %edi
 	movl	$0, %eax
-	call	printf@PLT
+	call	printf
 	nop
 	leave
 	ret
@@ -29,9 +28,9 @@ test2:
 	movl	$28, -4(%rbp)
 	movl	-4(%rbp), %eax
 	movl	%eax, %esi
-	leaq	.LC0(%rip), %rdi
+	movl	$.LC0, %edi
 	movl	$0, %eax
-	call	printf@PLT
+	call	printf
 	nop
 	leave
 	ret
@@ -49,5 +48,5 @@ main:
 	popq	%rbp
 	ret
 	.size	main, .-main
-	.ident	"GCC: (Ubuntu 7.3.0-27ubuntu1~18.04) 7.3.0"
+	.ident	"GCC: (Ubuntu 5.4.0-6ubuntu1~16.04.11) 5.4.0 20160609"
 	.section	.note.GNU-stack,"",@progbits
