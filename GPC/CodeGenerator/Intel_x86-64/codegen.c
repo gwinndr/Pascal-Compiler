@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include "register_types.h"
 #include "codegen.h"
 #include "stackmng/stackmng.h"
 #include "../../Parser/List/List.h"
@@ -313,17 +314,199 @@ ListNode_t *codegen_function_body(struct Statement *stmt, FILE *o_file)
 
 
 /* Code generation for a variable assignment */
+/* TODO: Array assignments not currently supported */
 ListNode_t *codegen_var_assignment(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
 {
-    ListNode_t *char_vec;
+    assert(stmt != NULL);
+    assert(stmt->type == STMT_VAR_ASSIGN);
 
-    return inst_list;
+    StackNode_t *var;
+    Register_t *reg;
+    char buffer[50];
+    struct Expression *var_expr, *assign_expr;
+
+    var_expr = stmt->stmt_data.var_assign_data.var;
+    assign_expr = stmt->stmt_data.var_assign_data.expr;
+
+    /* Getting stack address of variable to set */
+    assert(var_expr->type == EXPR_VAR_ID);
+    var = find_label(var_expr->expr_data.id);
+    assert(var != NULL);
+
+    inst_list = codegen_expr(assign_expr, inst_list, o_file);
+
+    reg = front_reg_stack(get_reg_stack());
+    snprintf(buffer, 50, "\tmovl\t%s, -%d(%%rbp)\n", reg->bit_32, var->offset);
+
+    return add_inst(inst_list, buffer);
 }
 
 /* Code generation for a procedure call */
 /* NOTE: This function will also recognize builtin procedures */
+/* TODO: Only handles the write builtin */
+/* TODO: Currently only handles builtins */
+/* TODO: Functions and procedures only handle max 2 arguments */
 ListNode_t *codegen_proc_call(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
 {
+    assert(stmt != NULL);
+    assert(stmt->type == STMT_PROCEDURE_CALL);
+
+    char *proc_name;
+    ListNode_t *args_expr;
+
+    proc_name = stmt->stmt_data.procedure_call_data.id;
+    args_expr = stmt->stmt_data.procedure_call_data.expr_args;
+
+    /* First check for builtins */
+    if(strcmp("write", proc_name) == 0)
+    {
+        inst_list = codegen_builtin_write(args_expr, inst_list, o_file);
+    }
+
+    /* TODO */
+    else
+    {
+        fprintf(stderr, "ERROR: Only write builtin procedure currently supported!\n");
+        exit(1);
+    }
 
     return inst_list;
+}
+
+/* Code generation for an expression */
+/* TODO: Only handles atomic numbers */
+/* TODO: Does not handle case where there is not enough registers */
+ListNode_t *codegen_expr(struct Expression *expr, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(expr != NULL);
+
+    switch(expr->type)
+    {
+        case EXPR_VAR_ID:
+            inst_list = codegen_expr_varid(expr, inst_list, o_file);
+            break;
+
+        case EXPR_INUM:
+            inst_list = codegen_expr_inum(expr, inst_list, o_file);
+            break;
+
+        default:
+            fprintf(stderr, "Error in codegen_expr: expr type not recognized: %d\n", expr->type);
+            exit(1);
+    }
+
+    return inst_list;
+}
+
+/* Write builtin */
+ListNode_t *codegen_builtin_write(ListNode_t *args, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(args != NULL);
+    assert(args->next == NULL);
+
+    int count;
+    struct Expression *expr;
+    char *arg_reg1, *arg_reg2;
+    char full_buffer[50];
+    Register_t *temp, *top;
+
+    arg_reg1 = get_arg_reg32_num(0);
+    arg_reg2 = get_arg_reg32_num(1);
+
+    get_register_32bit(get_reg_stack(), arg_reg1, &temp);
+    inst_list = codegen_expr((struct Expression *)args->cur, inst_list, o_file);
+    top = front_reg_stack(get_reg_stack());
+
+    if(strcmp(top->bit_32, arg_reg2) != 0)
+    {
+        get_register_32bit(get_reg_stack(), arg_reg2, &temp);
+        snprintf(full_buffer, 50, "\tmovl\t%s, %s\n", top->bit_32, arg_reg2);
+        inst_list = add_inst(inst_list, full_buffer);
+    }
+    else
+        get_register_32bit(get_reg_stack(), arg_reg2, &temp);
+
+    snprintf(full_buffer, 50, "\tmovl\t$%s, %s\n", PRINTF_LABEL, arg_reg1);
+    inst_list = add_inst(inst_list, full_buffer);
+
+    inst_list = add_inst(inst_list, "\tcall\tprintf\n");
+
+    return inst_list;
+}
+
+/* TODO: Functions and procedures only handle max 2 arguments */
+ListNode_t *codegen_args(ListNode_t *args, ListNode_t *inst_list, FILE *o_file)
+{
+    int count;
+    struct Expression *expr;
+    char *arg_reg;
+    char full_buffer[50];
+    Register_t *top, *arg;
+
+    count = 0;
+    while(args != NULL)
+    {
+        if(count >= MAX_ARGS)
+        {
+            fprintf(stderr, "ERROR: Can only codegen for %d arguments!\n", MAX_ARGS);
+            exit(1);
+        }
+
+        expr = (struct Expression *)args->cur;
+
+        codegen_expr(expr, inst_list, o_file);
+
+        arg_reg = get_arg_reg32_num(count);
+        assert(arg_reg != NULL);
+
+        top = front_reg_stack(get_reg_stack());
+
+        if(strcmp(top->bit_32, arg_reg) != 0)
+        {
+            snprintf(full_buffer, 50, "\tmovl\t%s, %s\n", top->bit_32, arg_reg);
+            inst_list = add_inst(inst_list, full_buffer);
+        }
+
+        args = args->next;
+        ++count;
+    }
+
+    return inst_list;
+}
+
+ListNode_t *codegen_expr_varid(struct Expression *expr, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(expr != NULL);
+    assert(expr->type == EXPR_VAR_ID);
+
+    char full_buffer[50];
+    Register_t *reg;
+    StackNode_t *var;
+
+    var = find_label(expr->expr_data.id);
+
+    reg = front_reg_stack(get_reg_stack());
+
+    snprintf(full_buffer, 50, "\tmovl\t-%d(%%rbp), %s\n", var->offset, reg->bit_32);
+
+    /*fprintf(stderr, "%s\n", full_buffer);*/
+
+    return add_inst(inst_list, full_buffer);
+}
+
+ListNode_t *codegen_expr_inum(struct Expression *expr, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(expr != NULL);
+    assert(expr->type == EXPR_INUM);
+
+    char full_buffer[50];
+    Register_t *reg;
+
+    reg = front_reg_stack(get_reg_stack());
+
+    snprintf(full_buffer, 50, "\tmovl\t$%d, %s\n", expr->expr_data.i_num, reg->bit_32);
+
+    /*fprintf(stderr, "%s\n", full_buffer);*/
+
+    return add_inst(inst_list, full_buffer);
 }

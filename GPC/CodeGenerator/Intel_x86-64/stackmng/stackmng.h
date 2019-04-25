@@ -21,13 +21,15 @@ typedef struct StackNode StackNode_t;
 typedef struct RegStack RegStack_t;
 typedef struct Register Register_t;
 
+/* Helper for getting special registers */
+char *get_arg_reg32_num(int num);
+
 /****** stackmng *******/
 typedef struct stackmng
 {
     /* Still in progress */
     StackScope_t *cur_scope;
     RegStack_t *reg_stack;
-
 } stackmng_t;
 
 void init_stackmng();
@@ -39,6 +41,7 @@ StackNode_t *add_l_t(char *);
 StackNode_t *add_l_x(char *);
 StackNode_t *add_l_z(char *);
 StackNode_t *find_label(char *);
+RegStack_t *get_reg_stack();
 void free_stackmng();
 
 /********* RegStack_t **********/
@@ -51,7 +54,15 @@ typedef struct RegStack
 
 RegStack_t *init_reg_stack();
 
+/* NOTE: Getters return number greater than 1 if it had to kick a value out to temp */
+/* The returned int is the temp offset to restore the value */
+int get_register_64bit(RegStack_t *, char *reg_64, Register_t **);
+int get_register_32bit(RegStack_t *, char *reg_32, Register_t **);
+void restore_register_64bit(RegStack_t *, Register_t *, int temp_offset);
+void restore_register_32bit(RegStack_t *, Register_t *, int temp_offset);
 void push_reg_stack(RegStack_t *, Register_t *);
+void swap_reg_stack(RegStack_t *);
+Register_t *front_reg_stack(RegStack_t *);
 Register_t *pop_reg_stack(RegStack_t *);
 
 void free_reg_stack(RegStack_t *);

@@ -96,6 +96,8 @@
 #define CODE_GEN_H
 
 #define DEBUG_CODEGEN
+#define MAX_ARGS 3
+#define PRINTF_LABEL ".LC0"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -119,5 +121,11 @@ ListNode_t *codegen_function_body(struct Statement *, FILE *);
 
 ListNode_t *codegen_var_assignment(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_proc_call(struct Statement *, ListNode_t *, FILE *);
+
+ListNode_t *codegen_expr(struct Expression *, ListNode_t *, FILE *);
+ListNode_t *codegen_builtin_write(ListNode_t *, ListNode_t *, FILE *);
+ListNode_t *codegen_args(ListNode_t*, ListNode_t *, FILE *);
+ListNode_t *codegen_expr_varid(struct Expression *, ListNode_t *, FILE *);
+ListNode_t *codegen_expr_inum(struct Expression *, ListNode_t *, FILE *);
 
 #endif

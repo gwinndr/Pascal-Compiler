@@ -8,8 +8,25 @@
 #include <assert.h>
 #include <string.h>
 #include "stackmng.h"
+#include "../register_types.h"
 #include "../codegen.h"
 #include "../../../Parser/List/List.h"
+
+/* Helper for getting special registers */
+/* TODO: Support more than 2 argument registers */
+char *get_arg_reg32_num(int num)
+{
+    if(num == 0)
+    {
+        return ARG_REG_1_32;
+    }
+    else if(num == 1)
+    {
+        return ARG_REG_2_32;
+    }
+
+    return NULL;
+}
 
 /******** stackmng *********/
 stackmng_t *global_stackmng = NULL;
@@ -174,6 +191,14 @@ StackNode_t *add_l_z(char *label)
     return new_node;
 }
 
+RegStack_t *get_reg_stack()
+{
+    assert(global_stackmng != NULL);
+    assert(global_stackmng->reg_stack != NULL);
+
+    return global_stackmng->reg_stack;
+}
+
 /* TODO: Does not find variables outside the current scope */
 StackNode_t *find_label(char *label)
 {
@@ -190,7 +215,7 @@ StackNode_t *find_label(char *label)
     while(cur_li != NULL)
     {
         cur_node = (StackNode_t *)cur_li->cur;
-        if(strcmp(cur_node->label, label))
+        if(strcmp(cur_node->label, label) == 0)
         {
             return cur_node;
         }
@@ -201,7 +226,7 @@ StackNode_t *find_label(char *label)
     while(cur_li != NULL)
     {
         cur_node = (StackNode_t *)cur_li->cur;
-        if(strcmp(cur_node->label, label))
+        if(strcmp(cur_node->label, label) == 0)
         {
             return cur_node;
         }
@@ -212,7 +237,7 @@ StackNode_t *find_label(char *label)
     while(cur_li != NULL)
     {
         cur_node = (StackNode_t *)cur_li->cur;
-        if(strcmp(cur_node->label, label))
+        if(strcmp(cur_node->label, label) == 0)
         {
             return cur_node;
         }
@@ -249,30 +274,73 @@ RegStack_t *init_reg_stack()
     /* RBX */
     Register_t *rbx;
     rbx = (Register_t *)malloc(sizeof(Register_t));
-    rbx->bit_64 = strdup("%%rbx");
-    rbx->bit_32 = strdup("%%ebx");
+    rbx->bit_64 = strdup("%rbx");
+    rbx->bit_32 = strdup("%ebx");
 
     /* RDI */
     Register_t *rdi;
     rdi = (Register_t *)malloc(sizeof(Register_t));
-    rdi->bit_64 = strdup("%%rdi");
-    rdi->bit_32 = strdup("%%edi");
+    rdi->bit_64 = strdup("%rdi");
+    rdi->bit_32 = strdup("%edi");
 
     /* RSI */
     Register_t *rsi;
     rsi = (Register_t *)malloc(sizeof(Register_t));
-    rsi->bit_64 = strdup("%%rsi");
-    rsi->bit_32 = strdup("%%esi");
+    rsi->bit_64 = strdup("%rsi");
+    rsi->bit_32 = strdup("%esi");
 
-
+    /*
     registers = CreateListNode(rbx, LIST_UNSPECIFIED);
     registers = PushListNodeBack(registers, CreateListNode(rdi, LIST_UNSPECIFIED));
     registers = PushListNodeBack(registers, CreateListNode(rsi, LIST_UNSPECIFIED));
+    */
+    registers = CreateListNode(rdi, LIST_UNSPECIFIED);
+    registers = PushListNodeBack(registers, CreateListNode(rsi, LIST_UNSPECIFIED));
+    registers = PushListNodeBack(registers, CreateListNode(rbx, LIST_UNSPECIFIED));
 
     reg_stack->num_registers_alloced = 0;
     reg_stack->registers_free = registers;
 
     return reg_stack;
+}
+
+/* NOTE: Getters return number greater than 0 if it had to kick a value out to temp */
+/* The returned int is the temp offset to restore the value */
+/* TODO: Doesn't actually kick variable out to temp yet */
+int get_register_32bit(RegStack_t *regstack, char *reg_32, Register_t **return_reg)
+{
+    assert(regstack != NULL);
+    assert(reg_32 != NULL);
+
+    ListNode_t *cur_reg, *prev_reg;
+    Register_t *reg;
+
+    cur_reg = regstack->registers_free;
+    prev_reg = NULL;
+    while(cur_reg != NULL)
+    {
+        reg = (Register_t *)cur_reg->cur;
+        if(strcmp(reg->bit_32, reg_32) == 0)
+        {
+            regstack->num_registers_alloced++;
+
+            if(prev_reg == NULL)
+                regstack->registers_free = cur_reg->next;
+            else
+                prev_reg->next = cur_reg->next;
+
+            free(cur_reg);
+            *return_reg = reg;
+
+            return 0;
+        }
+
+        prev_reg = cur_reg;
+        cur_reg = cur_reg->next;
+    }
+
+    fprintf(stderr, "ERROR: Kicking out values in registers not currently supported!\n");
+    exit(1);
 }
 
 void push_reg_stack(RegStack_t *reg_stack, Register_t *reg)
@@ -289,9 +357,32 @@ void push_reg_stack(RegStack_t *reg_stack, Register_t *reg)
 
     else
     {
-        reg_stack->registers_free = PushListNodeBack(reg_stack->registers_free,
+        reg_stack->registers_free = PushListNodeFront(reg_stack->registers_free,
             CreateListNode(reg, LIST_UNSPECIFIED));
     }
+}
+
+void swap_reg_stack(RegStack_t *reg_stack)
+{
+    /* Need at least two registers to do a swap */
+    assert(reg_stack != NULL);
+    assert(reg_stack->registers_free != NULL);
+    assert(reg_stack->registers_free->next != NULL);
+
+    ListNode_t *top, *next;
+    top = reg_stack->registers_free;
+    next = top->next;
+
+    top->next = next->next;
+    next->next = top;
+    reg_stack->registers_free = next;
+}
+
+Register_t *front_reg_stack(RegStack_t *reg_stack)
+{
+    assert(reg_stack != NULL);
+
+    return (Register_t *)reg_stack->registers_free->cur;
 }
 
 Register_t *pop_reg_stack(RegStack_t *reg_stack)
