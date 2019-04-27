@@ -1,25 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void read()
+void readwrite()
 {
     int x;
 
     scanf("%d", &x);
-}
-
-void write()
-{
-    int y;
-
-    y = 5;
-    printf("%d\n", y);
+    printf("%d\n", x);
 }
 
 int main()
 {
-    int x, y;
-
-    read();
-    write();
+    readwrite();
 }

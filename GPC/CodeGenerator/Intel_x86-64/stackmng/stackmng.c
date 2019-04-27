@@ -60,22 +60,22 @@ int get_full_stack_offset()
     assert(global_stackmng != NULL);
     assert(global_stackmng->cur_scope != NULL);
     StackScope_t *scope;
+    int actual_offset, div, rem;
 
     scope = global_stackmng->cur_scope;
 
-    return CONST_STACK_OFFSET_BYTES +
-        scope->t_offset + scope->x_offset + scope->z_offset;
-}
+    actual_offset = CONST_STACK_OFFSET_BYTES +
+                        scope->t_offset + scope->x_offset + scope->z_offset;
 
-int get_needed_stack_space()
-{
-    assert(global_stackmng != NULL);
-    assert(global_stackmng->cur_scope != NULL);
-    StackScope_t *scope;
+    /* x86_64 requires stack offsets to avoid undefined behavior */
+    div = actual_offset / REQUIRED_OFFSET;
+    rem = actual_offset % REQUIRED_OFFSET;
 
-    scope = global_stackmng->cur_scope;
+    if(rem > 0)
+        ++div;
 
-    return scope->t_offset + scope->x_offset + scope->z_offset;
+    return div * REQUIRED_OFFSET;
+
 }
 
 void push_stackscope()

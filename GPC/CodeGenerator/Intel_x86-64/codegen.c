@@ -171,7 +171,7 @@ void codegen_main(char *prgm_name, FILE *o_file)
 void codegen_stack_space(FILE *o_file)
 {
     int needed_space;
-    needed_space = get_needed_stack_space();
+    needed_space = get_full_stack_offset();
     assert(needed_space >= 0);
 
     if(needed_space != 0)
@@ -353,7 +353,6 @@ ListNode_t *codegen_var_assignment(struct Statement *stmt, ListNode_t *inst_list
 
 /* Code generation for a procedure call */
 /* NOTE: This function will also recognize builtin procedures */
-/* TODO: Only handles the write builtin */
 /* TODO: Currently only handles builtins */
 /* TODO: Functions and procedures only handle max 2 arguments */
 ListNode_t *codegen_proc_call(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
@@ -371,6 +370,10 @@ ListNode_t *codegen_proc_call(struct Statement *stmt, ListNode_t *inst_list, FIL
     if(strcmp("write", proc_name) == 0)
     {
         inst_list = codegen_builtin_write(args_expr, inst_list, o_file);
+    }
+    else if(strcmp("read", proc_name) == 0)
+    {
+        inst_list = codegen_builtin_read(args_expr, inst_list, o_file);
     }
 
     /* TODO */
@@ -427,20 +430,60 @@ ListNode_t *codegen_builtin_write(ListNode_t *args, ListNode_t *inst_list, FILE 
     inst_list = codegen_expr((struct Expression *)args->cur, inst_list, o_file);
     top = front_reg_stack(get_reg_stack());
 
+    get_register_32bit(get_reg_stack(), arg_reg2, &register2);
+
     if(strcmp(top->bit_32, arg_reg2) != 0)
     {
-        get_register_32bit(get_reg_stack(), arg_reg2, &register2);
         snprintf(full_buffer, 50, "\tmovl\t%s, %s\n", top->bit_32, arg_reg2);
         inst_list = add_inst(inst_list, full_buffer);
     }
-    else
-        get_register_32bit(get_reg_stack(), arg_reg2, &register2);
 
     snprintf(full_buffer, 50, "\tleaq\t%s, %s\n", PRINTF_REGISTER, arg_reg1);
     inst_list = add_inst(inst_list, full_buffer);
 
     codegen_vect_reg(inst_list, 0);
     snprintf(full_buffer, 50, "\tcall\t%s\n", PRINTF_CALL);
+    inst_list = add_inst(inst_list, full_buffer);
+
+    push_reg_stack(get_reg_stack(), register1);
+    push_reg_stack(get_reg_stack(), register2);
+
+    return inst_list;
+}
+
+/* Read builtin */
+/* TODO: Process reading into arrays */
+ListNode_t *codegen_builtin_read(ListNode_t *args, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(args != NULL);
+    assert(args->next == NULL);
+
+    StackNode_t *var;
+    struct Expression *expr;
+    char *arg_reg1, *arg_reg2;
+    char full_buffer[50];
+    Register_t *register1, *register2;
+
+    arg_reg1 = get_arg_reg64_num(0);
+    arg_reg2 = get_arg_reg64_num(1);
+
+    get_register_64bit(get_reg_stack(), arg_reg1, &register1);
+    get_register_64bit(get_reg_stack(), arg_reg2, &register2);
+
+    /* Extract the single variable to be read into */
+    expr = (struct Expression *)args->cur;
+    assert(expr != NULL);
+    assert(expr->type == EXPR_VAR_ID);
+
+    var = find_label(expr->expr_data.id);
+    snprintf(full_buffer, 50, "\tleaq\t-%d(%%rbp), %s\n", var->offset, arg_reg2);
+    inst_list = add_inst(inst_list, full_buffer);
+
+    snprintf(full_buffer, 50, "\tleaq\t%s, %s\n", SCANF_REGISTER, arg_reg1);
+    inst_list = add_inst(inst_list, full_buffer);
+
+    codegen_vect_reg(inst_list, 0);
+    snprintf(full_buffer, 50, "\tcall\t%s\n", SCANF_CALL);
     inst_list = add_inst(inst_list, full_buffer);
 
     push_reg_stack(get_reg_stack(), register1);

@@ -32,6 +32,8 @@
         ============
         HIGH ADDRESSES
 
+    Above aligned to 16 bytes as standard requires
+
     NOTE: Add arguments, then locals, then temps to avoid copying
 
     GENERAL PURPOSE REGISTERS:
@@ -97,9 +99,13 @@
 
 #define DEBUG_CODEGEN
 #define MAX_ARGS 3
+#define REQUIRED_OFFSET 16
 
 #define PRINTF_REGISTER ".LC0(%rip)"
 #define PRINTF_CALL "printf@PLT"
+
+#define SCANF_REGISTER ".LC1(%rip)"
+#define SCANF_CALL "__isoc99_scanf@PLT"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -127,6 +133,7 @@ ListNode_t *codegen_proc_call(struct Statement *, ListNode_t *, FILE *);
 
 ListNode_t *codegen_expr(struct Expression *, ListNode_t *, FILE *);
 ListNode_t *codegen_builtin_write(ListNode_t *, ListNode_t *, FILE *);
+ListNode_t *codegen_builtin_read(ListNode_t *, ListNode_t *, FILE *);
 ListNode_t *codegen_args(ListNode_t*, ListNode_t *, FILE *);
 ListNode_t *codegen_expr_varid(struct Expression *, ListNode_t *, FILE *);
 ListNode_t *codegen_expr_inum(struct Expression *, ListNode_t *, FILE *);
