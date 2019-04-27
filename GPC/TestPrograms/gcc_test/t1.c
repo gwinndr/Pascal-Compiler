@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main()
+void boo()
 {
-    int x, y, z;
-
+    int x, y;
     x = 13;
-    y = 12;
-    z = x%y;
-
+    y = 4;
     printf("%d\n", x);
     printf("%d\n", y);
+}
+
+int main()
+{
+    boo();
 }

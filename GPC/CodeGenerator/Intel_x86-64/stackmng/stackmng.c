@@ -12,8 +12,22 @@
 #include "../codegen.h"
 #include "../../../Parser/List/List.h"
 
-/* Helper for getting special registers */
+/* Helpers for getting special registers */
 /* TODO: Support more than 2 argument registers */
+char *get_arg_reg64_num(int num)
+{
+    if(num == 0)
+    {
+        return ARG_REG_1_64;
+    }
+    else if(num == 1)
+    {
+        return ARG_REG_2_64;
+    }
+
+    return NULL;
+}
+
 char *get_arg_reg32_num(int num)
 {
     if(num == 0)
@@ -149,7 +163,7 @@ StackNode_t *add_l_x(char *label)
     }
 
     #ifdef DEBUG_CODEGEN
-        fprintf(stderr, "DEBUG: Added %s to x_offset %d\n", label, offset);
+        fprintf(stderr, "DEBUG: Added %s to x_offset %d\n", new_node->label, new_node->offset);
     #endif
 
     return new_node;
@@ -302,6 +316,45 @@ RegStack_t *init_reg_stack()
     reg_stack->registers_free = registers;
 
     return reg_stack;
+}
+
+/* NOTE: Getters return number greater than 0 if it had to kick a value out to temp */
+/* The returned int is the temp offset to restore the value */
+/* TODO: Doesn't actually kick variable out to temp yet */
+int get_register_64bit(RegStack_t *regstack, char *reg_64, Register_t **return_reg)
+{
+    assert(regstack != NULL);
+    assert(reg_64 != NULL);
+
+    ListNode_t *cur_reg, *prev_reg;
+    Register_t *reg;
+
+    cur_reg = regstack->registers_free;
+    prev_reg = NULL;
+    while(cur_reg != NULL)
+    {
+        reg = (Register_t *)cur_reg->cur;
+        if(strcmp(reg->bit_64, reg_64) == 0)
+        {
+            regstack->num_registers_alloced++;
+
+            if(prev_reg == NULL)
+                regstack->registers_free = cur_reg->next;
+            else
+                prev_reg->next = cur_reg->next;
+
+            free(cur_reg);
+            *return_reg = reg;
+
+            return 0;
+        }
+
+        prev_reg = cur_reg;
+        cur_reg = cur_reg->next;
+    }
+
+    fprintf(stderr, "ERROR: Kicking out values in registers not currently supported!\n");
+    exit(1);
 }
 
 /* NOTE: Getters return number greater than 0 if it had to kick a value out to temp */
@@ -517,7 +570,7 @@ StackNode_t *init_stack_node(int offset, char *label, int size)
 
     new_node->offset = offset;
     new_node->label = strdup(label);
-    new_node->offset = size;
+    new_node->size = size;
 
     return new_node;
 }

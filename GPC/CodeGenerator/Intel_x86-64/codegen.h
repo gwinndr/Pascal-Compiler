@@ -97,7 +97,9 @@
 
 #define DEBUG_CODEGEN
 #define MAX_ARGS 3
-#define PRINTF_LABEL ".LC0"
+
+#define PRINTF_REGISTER ".LC0(%rip)"
+#define PRINTF_CALL "printf@PLT"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -118,6 +120,7 @@ void codegen_inst_list(ListNode_t *, FILE *);
 char * codegen_program(Tree_t *, FILE *);
 void codegen_function_locals(ListNode_t *, FILE *);
 ListNode_t *codegen_function_body(struct Statement *, FILE *);
+ListNode_t *codegen_vect_reg(ListNode_t *, int);
 
 ListNode_t *codegen_var_assignment(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_proc_call(struct Statement *, ListNode_t *, FILE *);

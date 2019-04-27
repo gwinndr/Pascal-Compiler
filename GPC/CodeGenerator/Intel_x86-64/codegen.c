@@ -312,6 +312,16 @@ ListNode_t *codegen_function_body(struct Statement *stmt, FILE *o_file)
     return inst_list;
 }
 
+/* Sets number of vector registers (floating points) before a function call */
+ListNode_t *codegen_vect_reg(ListNode_t *inst_list, int num_vec)
+{
+    char buffer[50];
+
+    snprintf(buffer, 50, "\tmovl\t$%d, %%eax\n", num_vec);
+
+    return add_inst(inst_list, buffer);
+}
+
 
 /* Code generation for a variable assignment */
 /* TODO: Array assignments not currently supported */
@@ -408,28 +418,33 @@ ListNode_t *codegen_builtin_write(ListNode_t *args, ListNode_t *inst_list, FILE 
     struct Expression *expr;
     char *arg_reg1, *arg_reg2;
     char full_buffer[50];
-    Register_t *temp, *top;
+    Register_t *register1, *register2, *top;
 
-    arg_reg1 = get_arg_reg32_num(0);
+    arg_reg1 = get_arg_reg64_num(0);
     arg_reg2 = get_arg_reg32_num(1);
 
-    get_register_32bit(get_reg_stack(), arg_reg1, &temp);
+    get_register_64bit(get_reg_stack(), arg_reg1, &register1);
     inst_list = codegen_expr((struct Expression *)args->cur, inst_list, o_file);
     top = front_reg_stack(get_reg_stack());
 
     if(strcmp(top->bit_32, arg_reg2) != 0)
     {
-        get_register_32bit(get_reg_stack(), arg_reg2, &temp);
+        get_register_32bit(get_reg_stack(), arg_reg2, &register2);
         snprintf(full_buffer, 50, "\tmovl\t%s, %s\n", top->bit_32, arg_reg2);
         inst_list = add_inst(inst_list, full_buffer);
     }
     else
-        get_register_32bit(get_reg_stack(), arg_reg2, &temp);
+        get_register_32bit(get_reg_stack(), arg_reg2, &register2);
 
-    snprintf(full_buffer, 50, "\tmovl\t$%s, %s\n", PRINTF_LABEL, arg_reg1);
+    snprintf(full_buffer, 50, "\tleaq\t%s, %s\n", PRINTF_REGISTER, arg_reg1);
     inst_list = add_inst(inst_list, full_buffer);
 
-    inst_list = add_inst(inst_list, "\tcall\tprintf\n");
+    codegen_vect_reg(inst_list, 0);
+    snprintf(full_buffer, 50, "\tcall\t%s\n", PRINTF_CALL);
+    inst_list = add_inst(inst_list, full_buffer);
+
+    push_reg_stack(get_reg_stack(), register1);
+    push_reg_stack(get_reg_stack(), register2);
 
     return inst_list;
 }
