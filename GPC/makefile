@@ -17,7 +17,7 @@ TREE_OBJS = $(PARSER_DIR)/List.o $(PARSER_DIR)/tree.o
 SEM_OBJS = $(PARSER_DIR)/SemCheck.o $(PARSER_DIR)/HashTable.o $(PARSER_DIR)/SymTab.o
 SEM_OBJS_MORE = $(PARSER_DIR)/SemCheck_stmt.o $(PARSER_DIR)/SemCheck_expr.o
 GRAMMAR_OBJS = $(GRAMMAR_DIR)/lex.yy.o $(GRAMMAR_DIR)/y.tab.o
-CODEGEN_OBJS = $(CODEGEN_DIR)/codegen.o $(CODEGEN_DIR)/stackmng.o
+CODEGEN_OBJS = $(CODEGEN_DIR)/codegen.o $(CODEGEN_DIR)/stackmng.o $(CODEGEN_DIR)/expr_tree.o
 ALL_OBJS = $(GPC_OBJS) $(GRAMMAR_OBJS) $(PARSER_OBJS) $(TREE_OBJS) $(SEM_OBJS) $(SEM_OBJS_MORE) $(CODEGEN_OBJS)
 
 BIN = gpc

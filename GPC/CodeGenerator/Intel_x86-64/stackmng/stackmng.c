@@ -303,17 +303,20 @@ RegStack_t *init_reg_stack()
     rsi->bit_64 = strdup("%rsi");
     rsi->bit_32 = strdup("%esi");
 
-    /*
+
     registers = CreateListNode(rbx, LIST_UNSPECIFIED);
     registers = PushListNodeBack(registers, CreateListNode(rdi, LIST_UNSPECIFIED));
     registers = PushListNodeBack(registers, CreateListNode(rsi, LIST_UNSPECIFIED));
-    */
+
+    /*
     registers = CreateListNode(rdi, LIST_UNSPECIFIED);
     registers = PushListNodeBack(registers, CreateListNode(rsi, LIST_UNSPECIFIED));
     registers = PushListNodeBack(registers, CreateListNode(rbx, LIST_UNSPECIFIED));
+    */
 
     reg_stack->num_registers_alloced = 0;
     reg_stack->registers_free = registers;
+    reg_stack->num_registers = 3;
 
     return reg_stack;
 }
@@ -459,6 +462,11 @@ Register_t *pop_reg_stack(RegStack_t *reg_stack)
     }
     else
         return NULL;
+}
+
+int get_num_registers(RegStack_t *reg_stack)
+{
+    return reg_stack->num_registers - reg_stack->num_registers_alloced;
 }
 
 void free_reg_stack(RegStack_t *reg_stack)

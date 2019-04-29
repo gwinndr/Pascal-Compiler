@@ -13,6 +13,7 @@
 #include "register_types.h"
 #include "codegen.h"
 #include "stackmng/stackmng.h"
+#include "expr_tree/expr_tree.h"
 #include "../../Parser/List/List.h"
 #include "../../Parser/ParseTree/tree.h"
 #include "../../Parser/ParseTree/tree_types.h"
@@ -393,20 +394,17 @@ ListNode_t *codegen_expr(struct Expression *expr, ListNode_t *inst_list, FILE *o
 {
     assert(expr != NULL);
 
-    switch(expr->type)
-    {
-        case EXPR_VAR_ID:
-            inst_list = codegen_expr_varid(expr, inst_list, o_file);
-            break;
+    expr_node_t *expr_tree;
 
-        case EXPR_INUM:
-            inst_list = codegen_expr_inum(expr, inst_list, o_file);
-            break;
+    expr_tree = build_expr_tree(expr);
 
-        default:
-            fprintf(stderr, "Error in codegen_expr: expr type not recognized: %d\n", expr->type);
-            exit(1);
-    }
+    #ifdef DEBUG_CODEGEN
+        print_expr_tree(expr_tree, 1, stderr);
+    #endif
+
+    inst_list = gencode_expr_tree(expr_tree, get_reg_stack(), inst_list);
+    free_expr_tree(expr_tree);
+    expr_tree = NULL;
 
     return inst_list;
 }
@@ -532,6 +530,7 @@ ListNode_t *codegen_args(ListNode_t *args, ListNode_t *inst_list, FILE *o_file)
     return inst_list;
 }
 
+/* (DEPRECATED) */
 ListNode_t *codegen_expr_varid(struct Expression *expr, ListNode_t *inst_list, FILE *o_file)
 {
     assert(expr != NULL);
@@ -552,6 +551,7 @@ ListNode_t *codegen_expr_varid(struct Expression *expr, ListNode_t *inst_list, F
     return add_inst(inst_list, full_buffer);
 }
 
+/* (DEPRECATED) */
 ListNode_t *codegen_expr_inum(struct Expression *expr, ListNode_t *inst_list, FILE *o_file)
 {
     assert(expr != NULL);

@@ -117,6 +117,8 @@
 /* This is the entry function */
 void codegen(Tree_t *, char *input_file_name, char *output_file_name);
 
+ListNode_t *add_inst(ListNode_t *, char *);
+
 void codegen_program_header(char *, FILE *);;
 void codegen_program_footer(FILE *);
 void codegen_main(char *prgm_name, FILE *o_file);
@@ -135,6 +137,8 @@ ListNode_t *codegen_expr(struct Expression *, ListNode_t *, FILE *);
 ListNode_t *codegen_builtin_write(ListNode_t *, ListNode_t *, FILE *);
 ListNode_t *codegen_builtin_read(ListNode_t *, ListNode_t *, FILE *);
 ListNode_t *codegen_args(ListNode_t*, ListNode_t *, FILE *);
+
+/* (DEPRECATED) */
 ListNode_t *codegen_expr_varid(struct Expression *, ListNode_t *, FILE *);
 ListNode_t *codegen_expr_inum(struct Expression *, ListNode_t *, FILE *);
 

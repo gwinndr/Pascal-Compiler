@@ -51,6 +51,7 @@ typedef struct RegStack
 {
     ListNode_t *registers_free;
     int num_registers_alloced;
+    int num_registers;
 } RegStack_t;
 
 RegStack_t *init_reg_stack();
@@ -65,6 +66,7 @@ void push_reg_stack(RegStack_t *, Register_t *);
 void swap_reg_stack(RegStack_t *);
 Register_t *front_reg_stack(RegStack_t *);
 Register_t *pop_reg_stack(RegStack_t *);
+int get_num_registers(RegStack_t *);
 
 void free_reg_stack(RegStack_t *);
 
