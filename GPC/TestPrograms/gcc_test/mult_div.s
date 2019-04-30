@@ -13,14 +13,20 @@ test:
 	movl	$6, -8(%rbp)
 	movl	$2, -4(%rbp)
 	movl	-8(%rbp), %eax
-	imull	-4(%rbp), %eax
+	cltd
+	idivl	-4(%rbp)
 	movl	%eax, %esi
 	leaq	.LC0(%rip), %rdi
 	movl	$0, %eax
 	call	printf@PLT
-	movl	-8(%rbp), %eax
-	cltd
-	idivl	-4(%rbp)
+	movl	-8(%rbp), %ecx
+	movl	$1431655766, %edx
+	movl	%ecx, %eax
+	imull	%edx
+	movl	%ecx, %eax
+	sarl	$31, %eax
+	subl	%eax, %edx
+	movl	%edx, %eax
 	movl	%eax, %esi
 	leaq	.LC0(%rip), %rdi
 	movl	$0, %eax

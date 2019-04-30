@@ -213,6 +213,34 @@ RegStack_t *get_reg_stack()
     return global_stackmng->reg_stack;
 }
 
+/* Finds variable on temp in current stack */
+/* Returns NULL if not found */
+StackNode_t *find_in_temp(char *label)
+{
+    assert(global_stackmng != NULL);
+    assert(global_stackmng->cur_scope != NULL);
+
+    StackScope_t *cur_scope;
+    ListNode_t *cur_li;
+    StackNode_t *cur_node;
+
+    cur_scope = global_stackmng->cur_scope;
+
+    cur_li = cur_scope->t;
+    while(cur_li != NULL)
+    {
+        cur_node = (StackNode_t *)cur_li->cur;
+        if(strcmp(cur_node->label, label) == 0)
+        {
+            return cur_node;
+        }
+
+        cur_li = cur_li->next;
+    }
+
+    return NULL;
+}
+
 /* TODO: Does not find variables outside the current scope */
 StackNode_t *find_label(char *label)
 {

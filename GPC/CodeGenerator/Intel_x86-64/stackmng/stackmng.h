@@ -41,6 +41,7 @@ void pop_stackscope();
 StackNode_t *add_l_t(char *);
 StackNode_t *add_l_x(char *);
 StackNode_t *add_l_z(char *);
+StackNode_t *find_in_temp(char *);
 StackNode_t *find_label(char *);
 RegStack_t *get_reg_stack();
 void free_stackmng();
