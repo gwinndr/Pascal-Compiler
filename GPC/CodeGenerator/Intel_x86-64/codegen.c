@@ -166,7 +166,7 @@ void codegen(Tree_t *tree, char *input_file_name, char *output_file_name)
     }
 
     /* codegen.h */
-    label_counter = 0;
+    label_counter = 1;
 
     init_stackmng();
 
@@ -369,9 +369,13 @@ ListNode_t *codegen_stmt(struct Statement *stmt, ListNode_t *inst_list, FILE *o_
             inst_list = codegen_if_then(stmt, inst_list, o_file);
             break;
 
+        case STMT_WHILE:
+            inst_list = codegen_while(stmt, inst_list, o_file);
+            break;
+
         default:
             fprintf(stderr, "Critical error: Unrecognized statement type in codegen\n");
-            assert(0);
+            exit(1);
     }
 
     return inst_list;
@@ -384,10 +388,9 @@ ListNode_t *codegen_compound_stmt(struct Statement *stmt, ListNode_t *inst_list,
     assert(stmt != NULL);
     assert(stmt->type == STMT_COMPOUND_STATEMENT);
 
-    ListNode_t *stmt_list, *comp_list;
+    ListNode_t *stmt_list;
     struct Statement *cur_stmt;
 
-    inst_list = NULL;
     stmt_list = stmt->stmt_data.compound_statement;
 
     while(stmt_list != NULL)
@@ -515,8 +518,46 @@ ListNode_t *codegen_if_then(struct Statement *stmt, ListNode_t *inst_list, FILE 
     return inst_list;
 }
 
+/* Code generation for while statements */
+/* TODO: Support more than simple relops */
+ListNode_t *codegen_while(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(stmt != NULL);
+    assert(stmt->type == STMT_WHILE);
+
+    int relop_type, inverse;
+    struct Expression *expr;
+    struct Statement *while_stmt;
+    char label1[18], label2[18], buffer[50];
+
+    /* Preparing labels and data */
+    gen_label(label1, 18);
+    gen_label(label2, 18);
+    while_stmt = stmt->stmt_data.while_data.while_stmt;
+    expr = stmt->stmt_data.while_data.relop_expr;
+
+    /* First jmp to comparison area */
+    inverse = 0;
+    inst_list = gencode_jmp(NORMAL_JMP, inverse, label1, inst_list);
+
+    /* WHILE STMT */
+    snprintf(buffer, 50, "%s:\n", label2);
+    inst_list = add_inst(inst_list, buffer);
+    inst_list = codegen_stmt(while_stmt, inst_list, o_file);
+
+    /* Comparison area */
+    snprintf(buffer, 50, "%s:\n", label1);
+    inst_list = add_inst(inst_list, buffer);
+    inst_list = codegen_simple_relop(expr, inst_list, o_file, &relop_type);
+
+    inverse = 0;
+    inst_list = gencode_jmp(relop_type, inverse, label2, inst_list);
+
+    return inst_list;
+}
+
+
 /* For codegen on a simple_relop */
-/* WARNING: Make sure to push the popped register */
 ListNode_t *codegen_simple_relop(struct Expression *expr, ListNode_t *inst_list,
     FILE *o_file, int *type)
 {

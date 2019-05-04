@@ -117,7 +117,7 @@
 #include "../../Parser/ParseTree/tree_types.h"
 
 /* For creating labels to jump to */
-/* Please initialize to 0 */
+/* Please initialize to 1 */
 int label_counter;
 
 /* This is the entry function */
@@ -140,6 +140,7 @@ ListNode_t *codegen_compound_stmt(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_var_assignment(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_proc_call(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_if_then(struct Statement *, ListNode_t *, FILE *);
+ListNode_t *codegen_while(struct Statement *, ListNode_t *, FILE *);
 
 ListNode_t *codegen_simple_relop(struct Expression *, ListNode_t *,
     FILE *, int *);
