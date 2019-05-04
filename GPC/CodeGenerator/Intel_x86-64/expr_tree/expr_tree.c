@@ -69,13 +69,12 @@ expr_node_t *build_expr_tree(struct Expression *expr)
             new_node->right_expr = NULL;
             break;
 
-        /*
         case EXPR_RELOP:
             new_node->left_expr = build_expr_tree(expr->expr_data.relop_data.left);
-            if(expr->expr_data.relop_data.right != NULL)
-                new_node->right_expr = build_expr_tree(expr->expr_data.relop_data.right);
+            assert(expr->expr_data.relop_data.right != NULL);
+            new_node->right_expr = build_expr_tree(expr->expr_data.relop_data.right);
             break;
-        */
+
 
         default:
             fprintf(stderr, "ERROR: Unsupported expr_tree type: %d\n", expr->type);
@@ -418,6 +417,10 @@ ListNode_t *gencode_op(struct Expression *expr, char *left, char *right,
                 fprintf(stderr, "ERROR: Bad mulop type!\n");
                 exit(1);
             }
+
+        case EXPR_RELOP:
+            snprintf(buffer, 50, "\tcmpl\t%s, %s\n", left, right);
+            inst_list = add_inst(inst_list, buffer);
 
             break;
 

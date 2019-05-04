@@ -564,10 +564,7 @@ ListNode_t *codegen_simple_relop(struct Expression *expr, ListNode_t *inst_list,
     assert(expr != NULL);
     assert(expr->type == EXPR_RELOP);
 
-    Register_t *reg1, *reg2;
-    RegStack_t *reg_stack;
     expr_node_t *expr_tree;
-    char buffer[50];
 
     switch(expr->expr_data.relop_data.type)
     {
@@ -578,22 +575,9 @@ ListNode_t *codegen_simple_relop(struct Expression *expr, ListNode_t *inst_list,
         case GT:
         case GE:
             *type = expr->expr_data.relop_data.type;
-            reg_stack = get_reg_stack();
-
-            expr_tree = build_expr_tree(expr->expr_data.relop_data.left);
-            inst_list = gencode_expr_tree(expr_tree, reg_stack, inst_list);
+            expr_tree = build_expr_tree(expr);
+            inst_list = gencode_expr_tree(expr_tree, get_reg_stack(), inst_list);
             free_expr_tree(expr_tree);
-            reg1 = pop_reg_stack(reg_stack);
-
-            expr_tree = build_expr_tree(expr->expr_data.relop_data.right);
-            inst_list = gencode_expr_tree(expr_tree, reg_stack, inst_list);
-            free_expr_tree(expr_tree);
-            reg2 = front_reg_stack(reg_stack);
-
-            snprintf(buffer, 50, "\tcmpl\t%s, %s\n", reg2->bit_32, reg1->bit_32);
-            inst_list = add_inst(inst_list, buffer);
-
-            push_reg_stack(reg_stack, reg1);
 
             break;
 
