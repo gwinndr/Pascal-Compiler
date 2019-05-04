@@ -19,6 +19,12 @@
 #include "../../Parser/ParseTree/tree_types.h"
 #include "../../Parser/LexAndYacc/y.tab.h"
 
+/* Generates a label */
+void gen_label(char *buf, int buf_len)
+{
+    snprintf(buf, buf_len, ".L%d", ++label_counter);
+}
+
 /* Adds instruction to instruction list */
 /* WARNING: Makes copy of given char * */
 ListNode_t *add_inst(ListNode_t *inst_list, char *inst)
@@ -51,6 +57,65 @@ void free_inst_list(ListNode_t *inst_list)
     }
 
     DestroyList(inst_list);
+}
+
+/* Generates jmp */
+/* Inverse jumps on the inverse of the type */
+ListNode_t *gencode_jmp(int type, int inverse, char *label, ListNode_t *inst_list)
+{
+    char buffer[30], jmp_buf[6];
+
+    switch(type)
+    {
+        case EQ:
+            if(inverse > 0)
+                snprintf(jmp_buf, 6, "jne");
+            else
+                snprintf(jmp_buf, 6, "je");
+            break;
+        case NE:
+            if(inverse > 0)
+                snprintf(jmp_buf, 6, "je");
+            else
+                snprintf(jmp_buf, 6, "jne");
+            break;
+        case LT:
+            if(inverse > 0)
+                snprintf(jmp_buf, 6, "jge");
+            else
+                snprintf(jmp_buf, 6, "jl");
+            break;
+        case LE:
+            if(inverse > 0)
+                snprintf(jmp_buf, 6, "jg");
+            else
+                snprintf(jmp_buf, 6, "jle");
+            break;
+        case GT:
+            if(inverse > 0)
+                snprintf(jmp_buf, 6, "jle");
+            else
+                snprintf(jmp_buf, 6, "jg");
+            break;
+        case GE:
+            if(inverse > 0)
+                snprintf(jmp_buf, 6, "jge");
+            else
+                snprintf(jmp_buf, 6, "jl");
+            break;
+
+        case NORMAL_JMP:
+            snprintf(jmp_buf, 6, "jmp");
+            break;
+
+        default:
+            fprintf(stderr, "ERROR: Unrecognized relop type in jmp generation!\n");
+            exit(1);
+    }
+
+    snprintf(buffer, 30, "\t%s\t%s\n", jmp_buf, label);
+
+    return add_inst(inst_list, buffer);
 }
 
 /* Generates a function header */
@@ -99,6 +164,9 @@ void codegen(Tree_t *tree, char *input_file_name, char *output_file_name)
         fprintf(stderr, "ERROR: Failed to open output file: %s\n", output_file_name);
         exit(1);
     }
+
+    /* codegen.h */
+    label_counter = 0;
 
     init_stackmng();
 
@@ -219,10 +287,10 @@ char * codegen_program(Tree_t *prgm, FILE *o_file)
 
     codegen_function_header(prgm_name, o_file);
 
-    /* TODO */
     codegen_function_locals(data->var_declaration, o_file);
 
-    inst_list = codegen_function_body(data->body_statement, o_file);
+    inst_list = NULL;
+    inst_list = codegen_stmt(data->body_statement, inst_list, o_file);
 
     codegen_stack_space(o_file);
     codegen_inst_list(inst_list, o_file);
@@ -266,53 +334,6 @@ void codegen_function_locals(ListNode_t *local_decl, FILE *o_file)
      }
 }
 
-/* TODO: Only handles assignments and read/write builtins */
-/* Returns a list of instructions */
-ListNode_t *codegen_function_body(struct Statement *stmt, FILE *o_file)
-{
-    assert(stmt != NULL);
-    assert(stmt->type == STMT_COMPOUND_STATEMENT);
-
-    ListNode_t *inst_list, *stmt_list, *comp_list;
-    struct Statement *cur_stmt;
-
-    inst_list = NULL;
-    stmt_list = stmt->stmt_data.compound_statement;
-
-    while(stmt_list != NULL)
-    {
-        cur_stmt = (struct Statement *)stmt_list->cur;
-
-        switch(cur_stmt->type)
-        {
-            case STMT_VAR_ASSIGN:
-                inst_list = codegen_var_assignment(cur_stmt, inst_list, o_file);
-                break;
-
-            case STMT_PROCEDURE_CALL:
-                inst_list = codegen_proc_call(cur_stmt, inst_list, o_file);
-                break;
-
-            case STMT_COMPOUND_STATEMENT:
-                comp_list = codegen_function_body(cur_stmt, o_file);
-                if(inst_list == NULL)
-                    inst_list = comp_list;
-                else
-                    inst_list = PushListNodeBack(inst_list, comp_list);
-
-                break;
-
-            default:
-                fprintf(stderr, "Critical error: Unrecognized statement type in codegen\n");
-                assert(0);
-        }
-
-        stmt_list = stmt_list->next;
-    }
-
-    return inst_list;
-}
-
 /* Sets number of vector registers (floating points) before a function call */
 ListNode_t *codegen_vect_reg(ListNode_t *inst_list, int num_vec)
 {
@@ -323,6 +344,63 @@ ListNode_t *codegen_vect_reg(ListNode_t *inst_list, int num_vec)
     return add_inst(inst_list, buffer);
 }
 
+/* Codegen for a statement */
+ListNode_t *codegen_stmt(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(stmt != NULL);
+
+    ListNode_t *comp_list;
+
+    switch(stmt->type)
+    {
+        case STMT_VAR_ASSIGN:
+            inst_list = codegen_var_assignment(stmt, inst_list, o_file);
+            break;
+
+        case STMT_PROCEDURE_CALL:
+            inst_list = codegen_proc_call(stmt, inst_list, o_file);
+            break;
+
+        case STMT_COMPOUND_STATEMENT:
+            inst_list = codegen_compound_stmt(stmt, inst_list, o_file);
+            break;
+
+        case STMT_IF_THEN:
+            inst_list = codegen_if_then(stmt, inst_list, o_file);
+            break;
+
+        default:
+            fprintf(stderr, "Critical error: Unrecognized statement type in codegen\n");
+            assert(0);
+    }
+
+    return inst_list;
+}
+
+/* TODO: Only handles assignments and read/write builtins */
+/* Returns a list of instructions */
+ListNode_t *codegen_compound_stmt(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(stmt != NULL);
+    assert(stmt->type == STMT_COMPOUND_STATEMENT);
+
+    ListNode_t *stmt_list, *comp_list;
+    struct Statement *cur_stmt;
+
+    inst_list = NULL;
+    stmt_list = stmt->stmt_data.compound_statement;
+
+    while(stmt_list != NULL)
+    {
+        cur_stmt = (struct Statement *)stmt_list->cur;
+
+        inst_list = codegen_stmt(cur_stmt, inst_list, o_file);
+
+        stmt_list = stmt_list->next;
+    }
+
+    return inst_list;
+}
 
 /* Code generation for a variable assignment */
 /* TODO: Array assignments not currently supported */
@@ -387,9 +465,107 @@ ListNode_t *codegen_proc_call(struct Statement *stmt, ListNode_t *inst_list, FIL
     return inst_list;
 }
 
+/* Code generation for if-then-else statements */
+/* TODO: Support more than simple relops */
+ListNode_t *codegen_if_then(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(stmt != NULL);
+    assert(stmt->type == STMT_IF_THEN);
+
+    int relop_type, inverse;
+    struct Expression *expr;
+    struct Statement *if_stmt, *else_stmt;
+    char label1[18], label2[18], buffer[50];
+
+    /* Evaluating the relop */
+    expr = stmt->stmt_data.if_then_data.relop_expr;
+    inst_list = codegen_simple_relop(expr, inst_list, o_file, &relop_type);
+
+    /* Preparing labels and data */
+    gen_label(label1, 18);
+    gen_label(label2, 18);
+    if_stmt = stmt->stmt_data.if_then_data.if_stmt;
+    else_stmt = stmt->stmt_data.if_then_data.else_stmt;
+
+    /* IF STATEMENT */
+    inverse = 1;
+    inst_list = gencode_jmp(relop_type, inverse, label1, inst_list);
+    inst_list = codegen_stmt(if_stmt, inst_list, o_file);
+
+    /* ELSE STATEMENT (if applicable) */
+    if(else_stmt == NULL)
+    {
+        snprintf(buffer, 50, "%s:\n", label1);
+        inst_list = add_inst(inst_list, buffer);
+    }
+    else
+    {
+        inverse = 0;
+        inst_list = gencode_jmp(NORMAL_JMP, inverse, label2, inst_list);
+
+        snprintf(buffer, 50, "%s:\n", label1);
+        inst_list = add_inst(inst_list, buffer);
+
+        inst_list = codegen_stmt(else_stmt, inst_list, o_file);
+
+        snprintf(buffer, 50, "%s:\n", label2);
+        inst_list = add_inst(inst_list, buffer);
+    }
+
+    return inst_list;
+}
+
+/* For codegen on a simple_relop */
+/* WARNING: Make sure to push the popped register */
+ListNode_t *codegen_simple_relop(struct Expression *expr, ListNode_t *inst_list,
+    FILE *o_file, int *type)
+{
+    assert(expr != NULL);
+    assert(expr->type == EXPR_RELOP);
+
+    Register_t *reg1, *reg2;
+    RegStack_t *reg_stack;
+    expr_node_t *expr_tree;
+    char buffer[50];
+
+    switch(expr->expr_data.relop_data.type)
+    {
+        case EQ:
+        case NE:
+        case LT:
+        case LE:
+        case GT:
+        case GE:
+            *type = expr->expr_data.relop_data.type;
+            reg_stack = get_reg_stack();
+
+            expr_tree = build_expr_tree(expr->expr_data.relop_data.left);
+            inst_list = gencode_expr_tree(expr_tree, reg_stack, inst_list);
+            free_expr_tree(expr_tree);
+            reg1 = pop_reg_stack(reg_stack);
+
+            expr_tree = build_expr_tree(expr->expr_data.relop_data.right);
+            inst_list = gencode_expr_tree(expr_tree, reg_stack, inst_list);
+            free_expr_tree(expr_tree);
+            reg2 = front_reg_stack(reg_stack);
+
+            snprintf(buffer, 50, "\tcmpl\t%s, %s\n", reg2->bit_32, reg1->bit_32);
+            inst_list = add_inst(inst_list, buffer);
+
+            push_reg_stack(reg_stack, reg1);
+
+            break;
+
+        default:
+            fprintf(stderr, "ERROR: Unrecognized simple_relop in codegen!\n");
+            exit(1);
+
+    }
+
+    return inst_list;
+}
+
 /* Code generation for an expression */
-/* TODO: Only handles atomic numbers */
-/* TODO: Does not handle case where there is not enough registers */
 ListNode_t *codegen_expr(struct Expression *expr, ListNode_t *inst_list, FILE *o_file)
 {
     assert(expr != NULL);
@@ -529,6 +705,8 @@ ListNode_t *codegen_args(ListNode_t *args, ListNode_t *inst_list, FILE *o_file)
 
     return inst_list;
 }
+
+
 
 /* (DEPRECATED) */
 ListNode_t *codegen_expr_varid(struct Expression *expr, ListNode_t *inst_list, FILE *o_file)

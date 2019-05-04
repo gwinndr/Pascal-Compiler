@@ -101,6 +101,8 @@
 #define MAX_ARGS 3
 #define REQUIRED_OFFSET 16
 
+#define NORMAL_JMP -1
+
 #define PRINTF_REGISTER ".LC0(%rip)"
 #define PRINTF_CALL "printf@PLT"
 
@@ -113,6 +115,10 @@
 #include "../../Parser/List/List.h"
 #include "../../Parser/ParseTree/tree.h"
 #include "../../Parser/ParseTree/tree_types.h"
+
+/* For creating labels to jump to */
+/* Please initialize to 0 */
+int label_counter;
 
 /* This is the entry function */
 void codegen(Tree_t *, char *input_file_name, char *output_file_name);
@@ -127,11 +133,16 @@ void codegen_inst_list(ListNode_t *, FILE *);
 
 char * codegen_program(Tree_t *, FILE *);
 void codegen_function_locals(ListNode_t *, FILE *);
-ListNode_t *codegen_function_body(struct Statement *, FILE *);
 ListNode_t *codegen_vect_reg(ListNode_t *, int);
 
+ListNode_t *codegen_stmt(struct Statement *, ListNode_t *,FILE *);
+ListNode_t *codegen_compound_stmt(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_var_assignment(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_proc_call(struct Statement *, ListNode_t *, FILE *);
+ListNode_t *codegen_if_then(struct Statement *, ListNode_t *, FILE *);
+
+ListNode_t *codegen_simple_relop(struct Expression *, ListNode_t *,
+    FILE *, int *);
 
 ListNode_t *codegen_expr(struct Expression *, ListNode_t *, FILE *);
 ListNode_t *codegen_builtin_write(ListNode_t *, ListNode_t *, FILE *);

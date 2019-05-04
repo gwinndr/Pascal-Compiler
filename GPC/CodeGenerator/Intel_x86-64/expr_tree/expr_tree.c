@@ -69,6 +69,14 @@ expr_node_t *build_expr_tree(struct Expression *expr)
             new_node->right_expr = NULL;
             break;
 
+        /*
+        case EXPR_RELOP:
+            new_node->left_expr = build_expr_tree(expr->expr_data.relop_data.left);
+            if(expr->expr_data.relop_data.right != NULL)
+                new_node->right_expr = build_expr_tree(expr->expr_data.relop_data.right);
+            break;
+        */
+
         default:
             fprintf(stderr, "ERROR: Unsupported expr_tree type: %d\n", expr->type);
             exit(1);
