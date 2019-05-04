@@ -6,6 +6,8 @@
 #ifndef PARSE_PASCAL_H
 #define PARSE_PASCAL_H
 
+/*#define DEBUG_BISON*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "ParseTree/tree.h"

@@ -20,6 +20,7 @@
 #include "../../../Parser/LexAndYacc/y.tab.h"
 
 /* Helper functions */
+ListNode_t *gencode_sign_term(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *inst_list);
 ListNode_t *gencode_case0(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *inst_list);
 ListNode_t *gencode_case1(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *inst_list);
 ListNode_t *gencode_case2(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *inst_list);
@@ -55,6 +56,11 @@ expr_node_t *build_expr_tree(struct Expression *expr)
         case EXPR_MULOP:
             new_node->left_expr = build_expr_tree(expr->expr_data.mulop_data.left_term);
             new_node->right_expr = build_expr_tree(expr->expr_data.mulop_data.right_factor);
+            break;
+
+        case EXPR_SIGN_TERM:
+            new_node->left_expr = build_expr_tree(expr->expr_data.sign_term);
+            new_node->right_expr = NULL;
             break;
 
         case EXPR_VAR_ID:
@@ -117,8 +123,14 @@ ListNode_t *gencode_expr_tree(expr_node_t *node, RegStack_t *reg_stack, ListNode
         exit(1);
     }
 
+    /* Handle special cases first */
+    if(node->expr->type == EXPR_SIGN_TERM)
+    {
+        inst_list = gencode_sign_term(node, reg_stack, inst_list);
+    }
+
     /* CASE 0 */
-    if(expr_tree_is_leaf(node) == 1)
+    else if(expr_tree_is_leaf(node) == 1)
     {
         inst_list = gencode_case0(node, reg_stack, inst_list);
     }
@@ -195,6 +207,25 @@ void free_expr_tree(expr_node_t *node)
         free_expr_tree(node->right_expr);
         free(node);
     }
+}
+
+/* Special case for a sign term */
+ListNode_t *gencode_sign_term(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *inst_list)
+{
+    assert(node != NULL);
+    assert(node->expr != NULL);
+    assert(node->expr->type == EXPR_SIGN_TERM);
+
+    char buffer[50];
+    Register_t *reg;
+
+    inst_list = gencode_expr_tree(node->left_expr, reg_stack, inst_list);
+    reg = front_reg_stack(reg_stack);
+
+    snprintf(buffer, 50, "\tnegl\t%s\n", reg->bit_32);
+    inst_list = add_inst(inst_list, buffer);
+
+    return inst_list;
 }
 
 /* node is a leaf */

@@ -175,6 +175,7 @@
 %type<expr> expression
 %type<expr> term
 %type<expr> factor
+%type<op_val> sign
 
 /* Rules to extract union values */
 %type<ident> ident
@@ -507,10 +508,6 @@ expression_list
 
 expression
     : term {$$ = $1;}
-    | sign term
-        {
-            $$ = mk_signterm(line_num, $2);
-        }
     | expression addop term
         {
             $$ = mk_addop(line_num, $2, $1, $3);
@@ -546,6 +543,13 @@ factor
         {
             $$ = mk_rnum(line_num, $1);
         }
+    | sign factor
+        {
+            if($1 == MINUS)
+                $$ = mk_signterm(line_num, $2);
+            else
+                $$ = $2;
+        }
     | '(' expression ')'
         {
             $$ = $2;
@@ -553,7 +557,10 @@ factor
     ;
 
 sign
-    : '-'
+    : ADDOP
+        {
+            $$ = yylval.op_val;
+        }
     ;
 
 %%
