@@ -82,6 +82,12 @@ void init_stackmng()
     global_stackmng->reg_stack = init_reg_stack();
 }
 
+/* For when you need low level access to the stack */
+StackScope_t *get_cur_scope()
+{
+    return global_stackmng->cur_scope;
+}
+
 int get_full_stack_offset()
 {
     assert(global_stackmng != NULL);
@@ -248,24 +254,12 @@ StackNode_t *find_in_temp(char *label)
     assert(global_stackmng->cur_scope != NULL);
 
     StackScope_t *cur_scope;
-    ListNode_t *cur_li;
     StackNode_t *cur_node;
 
     cur_scope = global_stackmng->cur_scope;
 
-    cur_li = cur_scope->t;
-    while(cur_li != NULL)
-    {
-        cur_node = (StackNode_t *)cur_li->cur;
-        if(strcmp(cur_node->label, label) == 0)
-        {
-            return cur_node;
-        }
-
-        cur_li = cur_li->next;
-    }
-
-    return NULL;
+    cur_node = stackscope_find_t(cur_scope, label);
+    return cur_node;
 }
 
 /* TODO: Does not find variables outside the current scope */
@@ -275,48 +269,29 @@ StackNode_t *find_label(char *label)
     assert(global_stackmng->cur_scope != NULL);
 
     StackScope_t *cur_scope;
-    ListNode_t *cur_li;
     StackNode_t *cur_node;
 
     cur_scope = global_stackmng->cur_scope;
 
-    cur_li = cur_scope->z;
-    while(cur_li != NULL)
+    cur_node = stackscope_find_z(cur_scope, label);
+    if(cur_node != NULL)
     {
-        cur_node = (StackNode_t *)cur_li->cur;
-        if(strcmp(cur_node->label, label) == 0)
-        {
-            return cur_node;
-        }
-
-        cur_li = cur_li->next;
-    }
-    cur_li = cur_scope->x;
-    while(cur_li != NULL)
-    {
-        cur_node = (StackNode_t *)cur_li->cur;
-        if(strcmp(cur_node->label, label) == 0)
-        {
-            return cur_node;
-        }
-
-        cur_li = cur_li->next;
-    }
-    cur_li = cur_scope->t;
-    while(cur_li != NULL)
-    {
-        cur_node = (StackNode_t *)cur_li->cur;
-        if(strcmp(cur_node->label, label) == 0)
-        {
-            return cur_node;
-        }
-
-        cur_li = cur_li->next;
+        return cur_node;
     }
 
-    /* Should never get here */
-    fprintf(stderr, "Critical error: Could not find variable on stackmng!\n");
-    assert(0);
+    cur_node = stackscope_find_x(cur_scope, label);
+    if(cur_node != NULL)
+    {
+        return cur_node;
+    }
+
+    cur_node = stackscope_find_t(cur_scope, label);
+    if(cur_node != NULL)
+    {
+        return cur_node;
+    }
+
+    return NULL;
 }
 
 void free_stackmng()
@@ -571,6 +546,66 @@ StackScope_t *init_stackscope()
     new_scope->prev_scope = NULL;
 
     return new_scope;
+}
+
+StackNode_t *stackscope_find_t(StackScope_t *cur_scope, char *label)
+{
+    ListNode_t *cur_li;
+    StackNode_t *cur_node;
+
+    cur_li = cur_scope->t;
+    while(cur_li != NULL)
+    {
+        cur_node = (StackNode_t *)cur_li->cur;
+        if(strcmp(cur_node->label, label) == 0)
+        {
+            return cur_node;
+        }
+
+        cur_li = cur_li->next;
+    }
+
+    return NULL;
+}
+
+StackNode_t *stackscope_find_x(StackScope_t *cur_scope, char *label)
+{
+    ListNode_t *cur_li;
+    StackNode_t *cur_node;
+
+    cur_li = cur_scope->x;
+    while(cur_li != NULL)
+    {
+        cur_node = (StackNode_t *)cur_li->cur;
+        if(strcmp(cur_node->label, label) == 0)
+        {
+            return cur_node;
+        }
+
+        cur_li = cur_li->next;
+    }
+
+    return NULL;
+}
+
+StackNode_t *stackscope_find_z(StackScope_t *cur_scope, char *label)
+{
+    ListNode_t *cur_li;
+    StackNode_t *cur_node;
+
+    cur_li = cur_scope->z;
+    while(cur_li != NULL)
+    {
+        cur_node = (StackNode_t *)cur_li->cur;
+        if(strcmp(cur_node->label, label) == 0)
+        {
+            return cur_node;
+        }
+
+        cur_li = cur_li->next;
+    }
+
+    return NULL;
 }
 
 /* Returns pointer to previous stack scope */

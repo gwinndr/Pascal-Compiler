@@ -75,7 +75,6 @@ expr_node_t *build_expr_tree(struct Expression *expr)
             new_node->right_expr = build_expr_tree(expr->expr_data.relop_data.right);
             break;
 
-
         default:
             fprintf(stderr, "ERROR: Unsupported expr_tree type: %d\n", expr->type);
             exit(1);
@@ -315,7 +314,7 @@ ListNode_t *gencode_case3(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *
     char buffer[50];
     char op_buf[30];
     Register_t *reg1, *reg2;
-    
+
     gencode_expr_tree(node->left_expr, reg_stack, inst_list);
     reg1 = pop_reg_stack(reg_stack);
     gencode_expr_tree(node->right_expr, reg_stack, inst_list);
@@ -336,13 +335,23 @@ ListNode_t *gencode_leaf_var(struct Expression *expr, ListNode_t *inst_list,
     assert(expr != NULL);
 
     StackNode_t *stack_node;
+    int offset;
 
     switch(expr->type)
     {
         case EXPR_VAR_ID:
             stack_node = find_label(expr->expr_data.id);
-            assert(stack_node != NULL);
-            snprintf(buffer, buf_len, "-%d(%%rbp)", stack_node->offset);
+
+            if(stack_node != NULL)
+            {
+                snprintf(buffer, buf_len, "-%d(%%rbp)", stack_node->offset);
+            }
+            else
+            {
+                inst_list = codegen_get_nonlocal(inst_list, expr->expr_data.id, &offset);
+                snprintf(buffer, buf_len, "-%d(%s)", offset, NON_LOCAL_REG_64);
+            }
+
             break;
 
         case EXPR_INUM:

@@ -590,6 +590,7 @@ ListNode_t *codegen_var_assignment(struct Statement *stmt, ListNode_t *inst_list
     Register_t *reg;
     char buffer[50];
     struct Expression *var_expr, *assign_expr;
+    int offset;
 
     var_expr = stmt->stmt_data.var_assign_data.var;
     assign_expr = stmt->stmt_data.var_assign_data.expr;
@@ -597,12 +598,20 @@ ListNode_t *codegen_var_assignment(struct Statement *stmt, ListNode_t *inst_list
     /* Getting stack address of variable to set */
     assert(var_expr->type == EXPR_VAR_ID);
     var = find_label(var_expr->expr_data.id);
-    assert(var != NULL);
 
     inst_list = codegen_expr(assign_expr, inst_list, o_file);
 
     reg = front_reg_stack(get_reg_stack());
-    snprintf(buffer, 50, "\tmovl\t%s, -%d(%%rbp)\n", reg->bit_32, var->offset);
+
+    if(var != NULL)
+    {
+        snprintf(buffer, 50, "\tmovl\t%s, -%d(%%rbp)\n", reg->bit_32, var->offset);
+    }
+    else
+    {
+        inst_list = codegen_get_nonlocal(inst_list, var_expr->expr_data.id, &offset);
+        snprintf(buffer, 50, "\tmovl\t%s, -%d(%s)\n", reg->bit_32, offset, NON_LOCAL_REG_64);
+    }
 
     return add_inst(inst_list, buffer);
 }
@@ -828,6 +837,59 @@ ListNode_t *codegen_pass_arguments(ListNode_t *args, ListNode_t *inst_list, FILE
         args = args->next;
         ++arg_num;
     }
+
+    return inst_list;
+}
+
+/* Helper for codegen_get_nonlocal */
+ListNode_t * codegen_goto_prev_scope(ListNode_t *inst_list, StackScope_t *cur_scope, char *base)
+{
+    char buffer[50];
+
+    snprintf(buffer, 50, "\tmovq\t(%s), %s\n", base, NON_LOCAL_REG_64);
+    inst_list = add_inst(inst_list, buffer);
+
+    return inst_list;
+}
+
+/* Performs non-local variable chasing with the appropriate register */
+/* Gives the offset to use on the register */
+ListNode_t *codegen_get_nonlocal(ListNode_t *inst_list, char *label, int *offset)
+{
+    StackScope_t *cur_scope;
+    StackNode_t *cur_node;
+    int found;
+
+    cur_scope = get_cur_scope();
+    assert(cur_scope != NULL);
+    found = 0;
+
+    inst_list = codegen_goto_prev_scope(inst_list, cur_scope, "%rbp");
+    cur_scope = cur_scope->prev_scope;
+
+    while(cur_scope != NULL)
+    {
+        cur_node = stackscope_find_x(cur_scope, label);
+        if(cur_node != NULL)
+        {
+            found = 1;
+            *offset = cur_node->offset;
+            break;
+        }
+
+        cur_node = stackscope_find_z(cur_scope, label);
+        if(cur_node != NULL)
+        {
+            found = 1;
+            *offset = cur_node->offset;
+            break;
+        }
+
+        inst_list = codegen_goto_prev_scope(inst_list, cur_scope, NON_LOCAL_REG_64);
+        cur_scope = cur_scope->prev_scope;
+    }
+
+    assert(found == 1);
 
     return inst_list;
 }

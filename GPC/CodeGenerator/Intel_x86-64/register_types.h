@@ -12,6 +12,10 @@
     #define RETURN_REG_64 "%rax"
     #define RETURN_REG_32 "%eax"
 
+    /* Non-local register */
+    #define NON_LOCAL_REG_64 "%rcx"
+    #define NON_LOCAL_REG_32 "%ecx"
+
     /* Argument registers */
     /* TODO: Add remaining registers */
     #define NUM_ARG_REG 4

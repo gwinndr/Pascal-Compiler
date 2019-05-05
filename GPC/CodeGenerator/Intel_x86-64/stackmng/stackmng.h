@@ -36,6 +36,7 @@ typedef struct stackmng
 } stackmng_t;
 
 void init_stackmng();
+StackScope_t *get_cur_scope();
 int get_full_stack_offset();
 int get_needed_stack_space();
 void push_stackscope();
@@ -92,6 +93,9 @@ typedef struct StackScope
 } StackScope_t;
 
 StackScope_t *init_stackscope();
+StackNode_t *stackscope_find_t(StackScope_t *, char *);
+StackNode_t *stackscope_find_x(StackScope_t *, char *);
+StackNode_t *stackscope_find_z(StackScope_t *, char *);
 StackScope_t *free_stackscope(StackScope_t *);
 void free_all_stackscopes(StackScope_t *);
 void free_stackscope_list(ListNode_t *);

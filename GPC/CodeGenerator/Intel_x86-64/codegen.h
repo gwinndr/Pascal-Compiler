@@ -148,6 +148,7 @@ ListNode_t *codegen_while(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_for(struct Statement *, ListNode_t *, FILE *);
 
 ListNode_t *codegen_pass_arguments(ListNode_t *, ListNode_t *, FILE *);
+ListNode_t *codegen_get_nonlocal(ListNode_t *, char *, int *);
 
 ListNode_t *codegen_simple_relop(struct Expression *, ListNode_t *,
     FILE *, int *);
