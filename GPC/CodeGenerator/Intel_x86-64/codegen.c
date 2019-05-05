@@ -361,8 +361,7 @@ void codegen_subprograms(ListNode_t *sub_list, FILE *o_file)
                 break;
 
             case TREE_SUBPROGRAM_FUNC:
-                fprintf(stderr, "Functions currently unsupported in codegen!\n");
-                exit(1);
+                codegen_function(sub, o_file);
                 break;
 
             default:
@@ -409,7 +408,48 @@ void codegen_procedure(Tree_t *proc_tree, FILE *o_file)
 }
 
 /* Code generation for a function */
-void codegen_function(Tree_t *, FILE *);
+void codegen_function(Tree_t *func_tree, FILE *o_file)
+{
+    assert(func_tree != NULL);
+    assert(func_tree->type == TREE_SUBPROGRAM);
+    assert(func_tree->tree_data.subprogram_data.sub_type == TREE_SUBPROGRAM_FUNC);
+
+    struct Subprogram *func;
+    ListNode_t *inst_list;
+    char buffer[50];
+    char *sub_id;
+    StackNode_t *return_var;
+
+    func = &func_tree->tree_data.subprogram_data;
+    sub_id = func->id;
+
+    push_stackscope();
+
+    /* Function name treated as return variable */
+    /* For simplicity, just treating it as a local variable (let semcheck deal with shenanigans) */
+    return_var = add_l_x(sub_id);
+
+    inst_list = NULL;
+    inst_list = codegen_subprogram_arguments(func->args_var, inst_list, o_file);
+
+    codegen_function_locals(func->declarations, o_file);
+    codegen_subprograms(func->subprograms, o_file);
+
+    inst_list = codegen_stmt(func->statement_list, inst_list, o_file);
+
+    /* Return statement */
+    snprintf(buffer, 50, "\tmovl\t-%d(%%rbp), %s\n", return_var->offset, RETURN_REG_32);
+    inst_list = add_inst(inst_list, buffer);
+
+
+    codegen_function_header(sub_id, o_file);
+    codegen_stack_space(o_file);
+    codegen_inst_list(inst_list, o_file);
+    codegen_function_footer(sub_id, o_file);
+    free_inst_list(inst_list);
+
+    pop_stackscope();
+}
 
 /* Code generation for subprogram arguments */
 /* Returns list of arguments to move arguements onto the stack */

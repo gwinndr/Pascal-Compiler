@@ -5,8 +5,7 @@ program boo( input, output );
 	foo := a div 10
  end;
 begin
- read(x);
- y := foo(x);
+ read(x); // Testing line comments :)
+ // y := foo(x);
  write(y)
 end.
-
