@@ -285,18 +285,16 @@ char * codegen_program(Tree_t *prgm, FILE *o_file)
 
     push_stackscope();
 
-    codegen_function_header(prgm_name, o_file);
-
     codegen_function_locals(data->var_declaration, o_file);
+    codegen_subprograms(data->subprograms, o_file);
 
     inst_list = NULL;
     inst_list = codegen_stmt(data->body_statement, inst_list, o_file);
 
+    codegen_function_header(prgm_name, o_file);
     codegen_stack_space(o_file);
     codegen_inst_list(inst_list, o_file);
-
     codegen_function_footer(prgm_name, o_file);
-
     free_inst_list(inst_list);
 
     pop_stackscope();
@@ -342,6 +340,138 @@ ListNode_t *codegen_vect_reg(ListNode_t *inst_list, int num_vec)
     snprintf(buffer, 50, "\tmovl\t$%d, %%eax\n", num_vec);
 
     return add_inst(inst_list, buffer);
+}
+
+/* Codegen for a list of subprograms */
+/* NOTE: List can be null */
+void codegen_subprograms(ListNode_t *sub_list, FILE *o_file)
+{
+    Tree_t *sub;
+
+    while(sub_list != NULL)
+    {
+        sub = (Tree_t *)sub_list->cur;
+        assert(sub != NULL);
+        assert(sub->type == TREE_SUBPROGRAM);
+
+        switch(sub->tree_data.subprogram_data.sub_type)
+        {
+            case TREE_SUBPROGRAM_PROC:
+                codegen_procedure(sub, o_file);
+                break;
+
+            case TREE_SUBPROGRAM_FUNC:
+                fprintf(stderr, "Functions currently unsupported in codegen!\n");
+                exit(1);
+                break;
+
+            default:
+                fprintf(stderr, "ERROR: Unrecognized subprogram type in codegen!\n");
+        }
+
+        sub_list = sub_list->next;
+    }
+}
+
+/* Code generation for a procedure */
+/* TODO: Support non-local variables */
+void codegen_procedure(Tree_t *proc_tree, FILE *o_file)
+{
+    assert(proc_tree != NULL);
+    assert(proc_tree->type == TREE_SUBPROGRAM);
+    assert(proc_tree->tree_data.subprogram_data.sub_type == TREE_SUBPROGRAM_PROC);
+
+    struct Subprogram *proc;
+    ListNode_t *inst_list;
+    char buffer[50];
+    char *sub_id;
+
+    proc = &proc_tree->tree_data.subprogram_data;
+    sub_id = proc->id;
+
+    push_stackscope();
+
+    inst_list = NULL;
+    inst_list = codegen_subprogram_arguments(proc->args_var, inst_list, o_file);
+
+    codegen_function_locals(proc->declarations, o_file);
+    codegen_subprograms(proc->subprograms, o_file);
+
+    inst_list = codegen_stmt(proc->statement_list, inst_list, o_file);
+
+    codegen_function_header(sub_id, o_file);
+    codegen_stack_space(o_file);
+    codegen_inst_list(inst_list, o_file);
+    codegen_function_footer(sub_id, o_file);
+    free_inst_list(inst_list);
+
+    pop_stackscope();
+}
+
+/* Code generation for a function */
+void codegen_function(Tree_t *, FILE *);
+
+/* Code generation for subprogram arguments */
+/* Returns list of arguments to move arguements onto the stack */
+/* NOTE: List can be NULL */
+/* TODO: Support arrays */
+/* TODO: Support any number of arguments */
+ListNode_t *codegen_subprogram_arguments(ListNode_t *args, ListNode_t *inst_list, FILE *o_file)
+{
+    Tree_t *arg_decl;
+    int type, arg_num;
+    ListNode_t *arg_ids;
+    char *arg_reg;
+    char buffer[50];
+    StackNode_t *arg_stack;
+
+    while(args != NULL)
+    {
+        arg_decl = (Tree_t *)args->cur;
+
+        switch(arg_decl->type)
+        {
+            case TREE_VAR_DECL:
+                arg_ids = arg_decl->tree_data.var_decl_data.ids;
+                type = arg_decl->tree_data.var_decl_data.type;
+                if(type == REAL_TYPE)
+                    fprintf(stderr, "WARNING: Only integers are supported!\n");
+
+                arg_num = 0;
+                while(arg_ids != NULL)
+                {
+                    arg_reg = get_arg_reg32_num(arg_num);
+                    if(arg_reg == NULL)
+                    {
+                        fprintf(stderr, "ERROR: Max argument limit: %d\n", NUM_ARG_REG);
+                        exit(1);
+                    }
+
+                    arg_stack = add_l_z((char *)arg_ids->cur);
+
+                    snprintf(buffer, 50, "\tmovl\t%s, -%d(%%rbp)\n", arg_reg, arg_stack->offset);
+                    inst_list = add_inst(inst_list, buffer);
+
+                    arg_ids = arg_ids->next;
+                    ++arg_num;
+                }
+
+                break;
+
+            case TREE_ARR_DECL:
+                fprintf(stderr, "ERROR: Arrays not currently supported as arguments!\n");
+                exit(1);
+                break;
+
+            default:
+                fprintf(stderr, "ERROR: Unknown argument type!\n");
+                exit(1);
+        }
+
+        args = args->next;
+    }
+
+    return inst_list;
 }
 
 /* Codegen for a statement */
@@ -448,6 +578,7 @@ ListNode_t *codegen_proc_call(struct Statement *stmt, ListNode_t *inst_list, FIL
 
     char *proc_name;
     ListNode_t *args_expr;
+    char buffer[50];
 
     proc_name = stmt->stmt_data.procedure_call_data.id;
     args_expr = stmt->stmt_data.procedure_call_data.expr_args;
@@ -462,11 +593,14 @@ ListNode_t *codegen_proc_call(struct Statement *stmt, ListNode_t *inst_list, FIL
         inst_list = codegen_builtin_read(args_expr, inst_list, o_file);
     }
 
-    /* TODO */
+    /* Not builtin */
     else
     {
-        fprintf(stderr, "ERROR: Only write builtin procedure currently supported!\n");
-        exit(1);
+        inst_list = codegen_pass_arguments(args_expr, inst_list, o_file);
+        inst_list = codegen_vect_reg(inst_list, 0);
+        snprintf(buffer, 50, "\tcall\t%s\n", proc_name);
+        inst_list = add_inst(inst_list, buffer);
+        free_arg_regs();
     }
 
     return inst_list;
@@ -623,6 +757,41 @@ ListNode_t *codegen_for(struct Statement *stmt, ListNode_t *inst_list, FILE *o_f
     return inst_list;
 }
 
+/* Code generation for passing arguments */
+ListNode_t *codegen_pass_arguments(ListNode_t *args, ListNode_t *inst_list, FILE *o_file)
+{
+    int arg_num;
+    StackNode_t *stack_node;
+    Register_t *top_reg;
+    char buffer[50];
+    char *arg_reg_char;
+    expr_node_t *expr_tree;
+
+    arg_num = 0;
+    while(args != NULL)
+    {
+        arg_reg_char = get_arg_reg32_num(arg_num);
+        if(arg_reg_char == NULL)
+        {
+            fprintf(stderr, "ERROR: Could not get arg register: %d\n", arg_num);
+            exit(1);
+        }
+
+        expr_tree = build_expr_tree((struct Expression *)args->cur);
+        inst_list = gencode_expr_tree(expr_tree, get_reg_stack(), inst_list);
+        free_expr_tree(expr_tree);
+
+        top_reg = front_reg_stack(get_reg_stack());
+        snprintf(buffer, 50, "\tmovl\t%s, %s\n", top_reg->bit_32, arg_reg_char);
+        inst_list = add_inst(inst_list, buffer);
+
+        args = args->next;
+        ++arg_num;
+    }
+
+    return inst_list;
+}
+
 /* For codegen on a simple_relop */
 ListNode_t *codegen_simple_relop(struct Expression *expr, ListNode_t *inst_list,
     FILE *o_file, int *type)
@@ -686,16 +855,17 @@ ListNode_t *codegen_builtin_write(ListNode_t *args, ListNode_t *inst_list, FILE 
     struct Expression *expr;
     char *arg_reg1, *arg_reg2;
     char full_buffer[50];
-    Register_t *register1, *register2, *top;
+    // Register_t *register1, *register2;
+    Register_t *top;
 
     arg_reg1 = get_arg_reg64_num(0);
     arg_reg2 = get_arg_reg32_num(1);
 
-    get_register_64bit(get_reg_stack(), arg_reg1, &register1);
+    // get_register_64bit(get_reg_stack(), arg_reg1, &register1);
     inst_list = codegen_expr((struct Expression *)args->cur, inst_list, o_file);
     top = front_reg_stack(get_reg_stack());
 
-    get_register_32bit(get_reg_stack(), arg_reg2, &register2);
+    // get_register_32bit(get_reg_stack(), arg_reg2, &register2);
 
     if(strcmp(top->bit_32, arg_reg2) != 0)
     {
@@ -710,8 +880,8 @@ ListNode_t *codegen_builtin_write(ListNode_t *args, ListNode_t *inst_list, FILE 
     snprintf(full_buffer, 50, "\tcall\t%s\n", PRINTF_CALL);
     inst_list = add_inst(inst_list, full_buffer);
 
-    push_reg_stack(get_reg_stack(), register1);
-    push_reg_stack(get_reg_stack(), register2);
+    // push_reg_stack(get_reg_stack(), register1);
+    // push_reg_stack(get_reg_stack(), register2);
 
     return inst_list;
 }
@@ -727,13 +897,13 @@ ListNode_t *codegen_builtin_read(ListNode_t *args, ListNode_t *inst_list, FILE *
     struct Expression *expr;
     char *arg_reg1, *arg_reg2;
     char full_buffer[50];
-    Register_t *register1, *register2;
+    // Register_t *register1, *register2;
 
     arg_reg1 = get_arg_reg64_num(0);
     arg_reg2 = get_arg_reg64_num(1);
 
-    get_register_64bit(get_reg_stack(), arg_reg1, &register1);
-    get_register_64bit(get_reg_stack(), arg_reg2, &register2);
+    // get_register_64bit(get_reg_stack(), arg_reg1, &register1);
+    // get_register_64bit(get_reg_stack(), arg_reg2, &register2);
 
     /* Extract the single variable to be read into */
     expr = (struct Expression *)args->cur;
@@ -751,8 +921,8 @@ ListNode_t *codegen_builtin_read(ListNode_t *args, ListNode_t *inst_list, FILE *
     snprintf(full_buffer, 50, "\tcall\t%s\n", SCANF_CALL);
     inst_list = add_inst(inst_list, full_buffer);
 
-    push_reg_stack(get_reg_stack(), register1);
-    push_reg_stack(get_reg_stack(), register2);
+    // push_reg_stack(get_reg_stack(), register1);
+    // push_reg_stack(get_reg_stack(), register2);
 
     return inst_list;
 }

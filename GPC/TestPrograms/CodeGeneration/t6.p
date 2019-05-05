@@ -15,4 +15,3 @@ begin
  write(z);
  bar(x,y,z)
 end.
-

@@ -14,12 +14,18 @@
 
     /* Argument registers */
     /* TODO: Add remaining registers */
-    #define NUM_ARG_REG 2
+    #define NUM_ARG_REG 4
 
     #define ARG_REG_1_64 "%rdi"
     #define ARG_REG_1_32 "%edi"
 
     #define ARG_REG_2_64 "%rsi"
     #define ARG_REG_2_32 "%esi"
+
+    #define ARG_REG_3_64 "%rdx"
+    #define ARG_REG_3_32 "%edx"
+
+    #define ARG_REG_4_64 "%rcx"
+    #define ARG_REG_4_32 "%ecx"
 
 #endif

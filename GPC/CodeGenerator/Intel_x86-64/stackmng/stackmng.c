@@ -12,10 +12,19 @@
 #include "../codegen.h"
 #include "../../../Parser/List/List.h"
 
+/* Sets num_args_alloced to 0 */
+void free_arg_regs()
+{
+    num_args_alloced = 0;
+}
+
 /* Helpers for getting special registers */
-/* TODO: Support more than 2 argument registers */
+/* TODO: Support loading arguments into temp if needed */
 char *get_arg_reg64_num(int num)
 {
+    if(num_args_alloced > num)
+        return NULL;
+
     if(num == 0)
     {
         return ARG_REG_1_64;
@@ -24,7 +33,16 @@ char *get_arg_reg64_num(int num)
     {
         return ARG_REG_2_64;
     }
+    else if(num == 2)
+    {
+        return ARG_REG_3_64;
+    }
+    else if(num == 3)
+    {
+        return ARG_REG_4_64;
+    }
 
+    ++num_args_alloced;
     return NULL;
 }
 
@@ -38,6 +56,14 @@ char *get_arg_reg32_num(int num)
     {
         return ARG_REG_2_32;
     }
+    else if(num == 2)
+    {
+        return ARG_REG_3_32;
+    }
+    else if(num == 3)
+    {
+        return ARG_REG_4_32;
+    }
 
     return NULL;
 }
@@ -49,6 +75,7 @@ void init_stackmng()
 {
     assert(global_stackmng == NULL);
 
+    num_args_alloced = 0;
     global_stackmng = (stackmng_t *)malloc(sizeof(stackmng_t));
 
     global_stackmng->cur_scope = NULL;
@@ -326,15 +353,15 @@ RegStack_t *init_reg_stack()
     rdi->bit_32 = strdup("%edi");
 
     /* RSI */
-    Register_t *rsi;
+    /*Register_t *rsi;
     rsi = (Register_t *)malloc(sizeof(Register_t));
     rsi->bit_64 = strdup("%rsi");
-    rsi->bit_32 = strdup("%esi");
+    rsi->bit_32 = strdup("%esi");*/
 
 
     registers = CreateListNode(rbx, LIST_UNSPECIFIED);
     registers = PushListNodeBack(registers, CreateListNode(rdi, LIST_UNSPECIFIED));
-    registers = PushListNodeBack(registers, CreateListNode(rsi, LIST_UNSPECIFIED));
+    /*registers = PushListNodeBack(registers, CreateListNode(rsi, LIST_UNSPECIFIED));*/
 
     /*
     registers = CreateListNode(rdi, LIST_UNSPECIFIED);
@@ -344,7 +371,7 @@ RegStack_t *init_reg_stack()
 
     reg_stack->num_registers_alloced = 0;
     reg_stack->registers_free = registers;
-    reg_stack->num_registers = 3;
+    reg_stack->num_registers = 2;
 
     return reg_stack;
 }

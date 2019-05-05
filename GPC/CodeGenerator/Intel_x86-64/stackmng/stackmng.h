@@ -22,6 +22,8 @@ typedef struct RegStack RegStack_t;
 typedef struct Register Register_t;
 
 /* Helper for getting special registers */
+int num_args_alloced;
+void free_arg_regs();
 char *get_arg_reg64_num(int num);
 char *get_arg_reg32_num(int num);
 

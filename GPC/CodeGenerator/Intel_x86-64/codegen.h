@@ -39,7 +39,6 @@
     GENERAL PURPOSE REGISTERS:
         - RBX
         - RDI
-        - RSI
 
     SPECIAL REGISTERS:
         - RSP (Stack pointer)
@@ -135,6 +134,11 @@ char * codegen_program(Tree_t *, FILE *);
 void codegen_function_locals(ListNode_t *, FILE *);
 ListNode_t *codegen_vect_reg(ListNode_t *, int);
 
+void codegen_subprograms(ListNode_t *, FILE *);
+void codegen_procedure(Tree_t *, FILE *);
+void codegen_function(Tree_t *, FILE *);
+ListNode_t *codegen_subprogram_arguments(ListNode_t *, ListNode_t *, FILE *);
+
 ListNode_t *codegen_stmt(struct Statement *, ListNode_t *,FILE *);
 ListNode_t *codegen_compound_stmt(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_var_assignment(struct Statement *, ListNode_t *, FILE *);
@@ -142,6 +146,8 @@ ListNode_t *codegen_proc_call(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_if_then(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_while(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_for(struct Statement *, ListNode_t *, FILE *);
+
+ListNode_t *codegen_pass_arguments(ListNode_t *, ListNode_t *, FILE *);
 
 ListNode_t *codegen_simple_relop(struct Expression *, ListNode_t *,
     FILE *, int *);
