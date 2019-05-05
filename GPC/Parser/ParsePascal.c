@@ -46,12 +46,15 @@ Tree_t *ParsePascal(char *file)
     #endif
 
     /**** SEMANTIC CHECKING ****/
-    semcheck_return = start_semcheck(parse_tree);
+    if(parse_tree != NULL)
+        {
+        semcheck_return = start_semcheck(parse_tree);
 
-    if(semcheck_return > 0)
-    {
-        destroy_tree(parse_tree);
-        parse_tree = NULL;
+        if(semcheck_return > 0)
+        {
+            destroy_tree(parse_tree);
+            parse_tree = NULL;
+        }
     }
 
     return parse_tree;
