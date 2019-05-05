@@ -373,6 +373,10 @@ ListNode_t *codegen_stmt(struct Statement *stmt, ListNode_t *inst_list, FILE *o_
             inst_list = codegen_while(stmt, inst_list, o_file);
             break;
 
+        case STMT_FOR:
+            inst_list = codegen_for(stmt, inst_list, o_file);
+            break;
+
         default:
             fprintf(stderr, "Critical error: Unrecognized statement type in codegen\n");
             exit(1);
@@ -556,6 +560,68 @@ ListNode_t *codegen_while(struct Statement *stmt, ListNode_t *inst_list, FILE *o
     return inst_list;
 }
 
+/* Code generation for for statements */
+/* TODO: Support more than simple relops */
+ListNode_t *codegen_for(struct Statement *stmt, ListNode_t *inst_list, FILE *o_file)
+{
+    assert(stmt != NULL);
+    assert(stmt->type == STMT_FOR);
+
+    int relop_type, inverse;
+    struct Expression *expr, *for_var, *comparison_expr, *update_expr, *one_expr;
+    struct Statement *for_body, *for_assign, *update_stmt;
+    char label1[18], label2[18], buffer[50];
+
+    /* Preparing labels and data */
+    gen_label(label1, 18);
+    gen_label(label2, 18);
+    for_body = stmt->stmt_data.for_data.do_for;
+    expr = stmt->stmt_data.for_data.to;
+
+    /* First do for variable assignment (if applicable) */
+    if(stmt->stmt_data.for_data.for_assign_type == STMT_FOR_ASSIGN_VAR)
+    {
+        for_assign = stmt->stmt_data.for_data.for_assign_data.var_assign;
+        inst_list = codegen_var_assignment(for_assign, inst_list, o_file);
+        for_var = stmt->stmt_data.for_data.for_assign_data.var_assign->stmt_data.var_assign_data.var;
+    }
+    else
+    {
+        for_var = stmt->stmt_data.for_data.for_assign_data.var;
+    }
+
+    assert(for_var->type == EXPR_VAR_ID);
+    comparison_expr = mk_relop(-1, LT, for_var, expr);
+    one_expr = mk_inum(-1, 1);
+    update_expr = mk_addop(-1, PLUS, for_var, one_expr);
+    update_stmt = mk_varassign(-1, for_var, update_expr);
+
+    /* First jmp to comparison area */
+    inverse = 0;
+    inst_list = gencode_jmp(NORMAL_JMP, inverse, label1, inst_list);
+
+    /* FOR STMT */
+    snprintf(buffer, 50, "%s:\n", label2);
+    inst_list = add_inst(inst_list, buffer);
+    inst_list = codegen_stmt(for_body, inst_list, o_file);
+
+    /* UPDATE */
+    inst_list = codegen_stmt(update_stmt, inst_list, o_file);
+
+    /* Comparison area */
+    snprintf(buffer, 50, "%s:\n", label1);
+    inst_list = add_inst(inst_list, buffer);
+    inst_list = codegen_simple_relop(comparison_expr, inst_list, o_file, &relop_type);
+
+    inverse = 0;
+    inst_list = gencode_jmp(relop_type, inverse, label2, inst_list);
+
+    free(comparison_expr);
+    free(one_expr);
+    free(update_expr);
+    free(update_stmt);
+    return inst_list;
+}
 
 /* For codegen on a simple_relop */
 ListNode_t *codegen_simple_relop(struct Expression *expr, ListNode_t *inst_list,

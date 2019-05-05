@@ -141,6 +141,7 @@ ListNode_t *codegen_var_assignment(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_proc_call(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_if_then(struct Statement *, ListNode_t *, FILE *);
 ListNode_t *codegen_while(struct Statement *, ListNode_t *, FILE *);
+ListNode_t *codegen_for(struct Statement *, ListNode_t *, FILE *);
 
 ListNode_t *codegen_simple_relop(struct Expression *, ListNode_t *,
     FILE *, int *);

@@ -315,7 +315,7 @@ ListNode_t *gencode_case3(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *
     char buffer[50];
     char op_buf[30];
     Register_t *reg1, *reg2;
-
+    
     gencode_expr_tree(node->left_expr, reg_stack, inst_list);
     reg1 = pop_reg_stack(reg_stack);
     gencode_expr_tree(node->right_expr, reg_stack, inst_list);
@@ -417,6 +417,8 @@ ListNode_t *gencode_op(struct Expression *expr, char *left, char *right,
                 fprintf(stderr, "ERROR: Bad mulop type!\n");
                 exit(1);
             }
+
+            break;
 
         case EXPR_RELOP:
             snprintf(buffer, 50, "\tcmpl\t%s, %s\n", left, right);
