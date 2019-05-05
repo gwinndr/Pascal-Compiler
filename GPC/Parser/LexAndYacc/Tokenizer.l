@@ -18,7 +18,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
 
 {whitespace} ;
 
-{comment}   { /* Well documented way to ignore comments */
+{comment}|"//".*   { /* Well documented way to ignore comments */
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[COMMENT] ");
     #endif
@@ -234,7 +234,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     return MULOP;
 }
 
-"/" {
+"div"|"/" {
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[MULOP:%s] ", yytext);
     #endif
