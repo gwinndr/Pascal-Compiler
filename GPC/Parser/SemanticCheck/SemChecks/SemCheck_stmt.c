@@ -124,7 +124,7 @@ int semcheck_proccall(SymTab_t *symtab, struct Statement *stmt, int max_scope_le
 {
     int return_val, scope_return, cur_arg, arg_type;
     HashNode_t *sym_return;
-    ListNode_t *true_args, *args_given;
+    ListNode_t *true_args, *true_arg_ids, *args_given;
     Tree_t *arg_decl;
 
     assert(symtab != NULL);
@@ -178,29 +178,35 @@ int semcheck_proccall(SymTab_t *symtab, struct Statement *stmt, int max_scope_le
 
             arg_decl = (Tree_t *)true_args->cur;
             assert(arg_decl->type == TREE_VAR_DECL);
+            true_arg_ids = arg_decl->tree_data.var_decl_data.ids;
 
-            if(arg_type != arg_decl->tree_data.var_decl_data.type &&
-                arg_decl->tree_data.var_decl_data.type != BUILTIN_ANY_TYPE)
+            while(true_arg_ids != NULL && args_given != NULL)
             {
-                fprintf(stderr, "Error on line %d, on function call %s, argument %d: Type mismatch!\n\n",
-                    stmt->line_num, (char *)stmt->stmt_data.procedure_call_data.id, cur_arg);
-                ++return_val;
+                if(arg_type != arg_decl->tree_data.var_decl_data.type &&
+                    arg_decl->tree_data.var_decl_data.type != BUILTIN_ANY_TYPE)
+                {
+                    fprintf(stderr, "Error on line %d, on procedure call %s, argument %d: Type mismatch!\n\n",
+                        stmt->line_num, (char *)stmt->stmt_data.procedure_call_data.id, cur_arg);
+                    ++return_val;
+                }
+
+                args_given = args_given->next;
+                true_arg_ids = true_arg_ids->next;
             }
 
-            args_given = args_given->next;
             true_args = true_args->next;
         }
 
         /* Verify arg counts match up */
         if(true_args == NULL && args_given != NULL)
         {
-            fprintf(stderr, "Error on line %d, on function call %s, too many arguments given!\n\n",
+            fprintf(stderr, "Error on line %d, on procedure call %s, too many arguments given!\n\n",
                 stmt->line_num, (char *)stmt->stmt_data.procedure_call_data.id);
             ++return_val;
         }
         else if(true_args != NULL && args_given == NULL)
         {
-            fprintf(stderr, "Error on line %d, on function call %s, not enough arguments given!\n\n",
+            fprintf(stderr, "Error on line %d, on procedure call %s, not enough arguments given!\n\n",
                 stmt->line_num, (char *)stmt->stmt_data.procedure_call_data.id);
             ++return_val;
         }

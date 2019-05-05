@@ -419,7 +419,7 @@ int semcheck_funccall(int *type_return,
     int return_val, scope_return;
     char *id;
     int arg_type, cur_arg;
-    ListNode_t *true_args, *args_given;
+    ListNode_t *true_args, *true_arg_ids, *args_given;
     HashNode_t *hash_return;
     Tree_t *arg_decl;
     assert(symtab != NULL);
@@ -472,16 +472,22 @@ int semcheck_funccall(int *type_return,
 
             arg_decl = (Tree_t *)true_args->cur;
             assert(arg_decl->type == TREE_VAR_DECL);
+            true_arg_ids = arg_decl->tree_data.var_decl_data.ids;
 
-            if(arg_type != arg_decl->tree_data.var_decl_data.type &&
-                arg_decl->tree_data.var_decl_data.type != BUILTIN_ANY_TYPE)
+            while(true_arg_ids != NULL && args_given != NULL)
             {
-                fprintf(stderr, "Error on line %d, on function call %s, argument %d: Type mismatch!\n\n",
-                    expr->line_num, id, cur_arg);
-                ++return_val;
-            }
+                if(arg_type != arg_decl->tree_data.var_decl_data.type &&
+                    arg_decl->tree_data.var_decl_data.type != BUILTIN_ANY_TYPE)
+                {
+                    fprintf(stderr, "Error on line %d, on function call %s, argument %d: Type mismatch!\n\n",
+                        expr->line_num, id, cur_arg);
+                    ++return_val;
+                }
 
-            args_given = args_given->next;
+                true_arg_ids = true_arg_ids->next;
+                args_given = args_given->next;
+            }
+                
             true_args = true_args->next;
         }
         if(true_args == NULL && args_given != NULL)

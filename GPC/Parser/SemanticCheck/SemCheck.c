@@ -76,13 +76,14 @@ int start_semcheck(Tree_t *parse_tree)
 void semcheck_add_builtins(SymTab_t *symtab)
 {
     char *id;
-    ListNode_t *args;
+    ListNode_t *args, *arg_ids;
 
     /**** READ PROCEDURE ****/
     id = strdup("read");
 
     /* Only arg is a variable to read into */
-    args = CreateListNode(mk_vardecl(-1, NULL, BUILTIN_ANY_TYPE), LIST_TREE);
+    arg_ids = CreateListNode(strdup("var"), LIST_STRING);
+    args = CreateListNode(mk_vardecl(-1, arg_ids, BUILTIN_ANY_TYPE), LIST_TREE);
 
     AddBuiltinProc(symtab, id, args);
 
@@ -90,7 +91,8 @@ void semcheck_add_builtins(SymTab_t *symtab)
     id = strdup("write");
 
     /* Only arg is a variable to read into */
-    args = CreateListNode(mk_vardecl(-1, NULL, BUILTIN_ANY_TYPE), LIST_TREE);
+    arg_ids = CreateListNode(strdup("var"), LIST_STRING);
+    args = CreateListNode(mk_vardecl(-1, arg_ids, BUILTIN_ANY_TYPE), LIST_TREE);
 
     AddBuiltinProc(symtab, id, args);
 }
