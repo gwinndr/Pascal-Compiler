@@ -96,7 +96,7 @@
 #ifndef CODE_GEN_H
 #define CODE_GEN_H
 
-#define DEBUG_CODEGEN
+/*#define DEBUG_CODEGEN*/
 #define MAX_ARGS 3
 #define REQUIRED_OFFSET 16
 
