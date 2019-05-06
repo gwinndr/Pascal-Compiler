@@ -39,6 +39,21 @@ int semcheck_arrayaccess(int *type_return,
 int semcheck_funccall(int *type_return,
     SymTab_t *symtab, struct Expression *expr, int max_scope_lev, int mutating);
 
+/* Sets hash meta based on given mutating flag */
+void set_hash_meta(HashNode_t *node, int mutating)
+{
+    if(mutating == BOTH_MUTATE_REFERENCE)
+    {
+        node->referenced += 1;
+        node->mutated += 1;
+    }
+    else
+    {
+        node->referenced += 1-mutating;
+        node->mutated += mutating;
+    }
+}
+
 /* Verifies a type is an INT_TYPE or REAL_TYPE */
 int is_type_ir(int *type)
 {
@@ -324,7 +339,9 @@ int semcheck_varid(int *type_return,
     return_val = 0;
     id = expr->expr_data.id;
 
-    scope_return = FindIdent(&hash_return, symtab, id, mutating);
+    scope_return = FindIdent(&hash_return, symtab, id);
+    set_hash_meta(hash_return, mutating);
+
     if(scope_return == -1)
     {
         fprintf(stderr, "Error on line %d, undeclared identifier \"%s\"!\n\n", expr->line_num, id);
@@ -373,7 +390,9 @@ int semcheck_arrayaccess(int *type_return,
 
     /***** FIRST VERIFY ARRAY IDENTIFIER *****/
 
-    scope_return = FindIdent(&hash_return, symtab, id, mutating);
+    scope_return = FindIdent(&hash_return, symtab, id);
+    set_hash_meta(hash_return, mutating);
+
     if(scope_return == -1)
     {
         fprintf(stderr, "Error on line %d, undeclared identifier \"%s\"!\n\n", expr->line_num, id);
@@ -432,7 +451,9 @@ int semcheck_funccall(int *type_return,
 
     /***** FIRST VERIFY FUNCTION IDENTIFIER *****/
 
-    scope_return = FindIdent(&hash_return, symtab, id, mutating);
+    scope_return = FindIdent(&hash_return, symtab, id);
+    set_hash_meta(hash_return, mutating);
+
     if(scope_return == -1)
     {
         fprintf(stderr, "Error on line %d, undeclared identifier %s!\n\n", expr->line_num, id);
@@ -487,7 +508,7 @@ int semcheck_funccall(int *type_return,
                 true_arg_ids = true_arg_ids->next;
                 args_given = args_given->next;
             }
-                
+
             true_args = true_args->next;
         }
         if(true_args == NULL && args_given != NULL)

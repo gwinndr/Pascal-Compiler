@@ -10,6 +10,7 @@
 
 #ifndef SEM_CHECK_EXPR_H
 #define SEM_CHECK_EXPR_H
+#define BOTH_MUTATE_REFERENCE 2
 #define MUTATE 1
 #define NO_MUTATE 0
 

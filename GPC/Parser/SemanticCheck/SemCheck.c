@@ -15,6 +15,8 @@
 #include <assert.h>
 #include <string.h>
 #include "SemCheck.h"
+#include "../../flags.h"
+#include "../../Optimizer/optimizer.h"
 #include "../ParseTree/tree.h"
 #include "../ParseTree/tree_types.h"
 #include "./SymTab/SymTab.h"
@@ -65,9 +67,9 @@ int start_semcheck(Tree_t *parse_tree)
     DestroySymTab(symtab);
 
     if(return_val > 0)
-        fprintf(stderr, "Check failed with %d error(s)!\n", return_val);
+        fprintf(stderr, "\nCheck failed with %d error(s)!\n\n", return_val);
     else
-        fprintf(stderr, "Check successful!\n");
+        fprintf(stderr, "\nCheck successful!\n\n");
 
     return return_val;
 }
@@ -123,6 +125,11 @@ int semcheck_program(SymTab_t *symtab, Tree_t *tree)
     return_val += semcheck_subprograms(symtab, tree->tree_data.program_data.subprograms, 0);
 
     return_val += semcheck_stmt(symtab, tree->tree_data.program_data.body_statement, 0);
+
+    if(optimize_flag() == 1)
+    {
+        optimize(symtab, tree);
+    }
 
     PopScope(symtab);
     return return_val;
@@ -316,7 +323,7 @@ int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
     }
     else
     {
-        assert(FindIdent(&hash_return, symtab, subprogram->tree_data.subprogram_data.id, NO_MUTATE)
+        assert(FindIdent(&hash_return, symtab, subprogram->tree_data.subprogram_data.id)
                     == 0);
 
         ResetHashNodeStatus(hash_return);

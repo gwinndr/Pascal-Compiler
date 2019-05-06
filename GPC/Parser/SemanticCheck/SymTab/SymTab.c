@@ -62,7 +62,7 @@ int PushVarOntoScope(SymTab_t *symtab, enum VarType var_type, char *id)
     HashTable_t *cur_hash;
 
     /* Make sure it's not a builtin */
-    if(FindIdentInTable(symtab->builtins, id, 0) == NULL)
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
     {
         cur_hash = (HashTable_t *)symtab->stack_head->cur;
         return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_VAR, NULL);
@@ -82,7 +82,7 @@ int PushArrayOntoScope(SymTab_t *symtab, enum VarType var_type, char *id)
     HashTable_t *cur_hash;
 
     /* Make sure it's not a builtin */
-    if(FindIdentInTable(symtab->builtins, id, 0) == NULL)
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
     {
         cur_hash = (HashTable_t *)symtab->stack_head->cur;
         return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_ARRAY, NULL);
@@ -103,7 +103,7 @@ int PushProcedureOntoScope(SymTab_t *symtab, char *id, ListNode_t *args)
     HashTable_t *cur_hash;
 
     /* Make sure it's not a builtin */
-    if(FindIdentInTable(symtab->builtins, id, 0) == NULL)
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
     {
         cur_hash = (HashTable_t *)symtab->stack_head->cur;
         return AddIdentToTable(cur_hash, id, HASHVAR_PROCEDURE, HASHTYPE_PROCEDURE, args);
@@ -124,7 +124,7 @@ int PushFunctionOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, Lis
     HashTable_t *cur_hash;
 
     /* Make sure it's not a builtin */
-    if(FindIdentInTable(symtab->builtins, id, 0) == NULL)
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
     {
         cur_hash = (HashTable_t *)symtab->stack_head->cur;
         return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION, args);
@@ -145,7 +145,7 @@ int PushFuncRetOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, List
     HashTable_t *cur_hash;
 
     /* Make sure it's not a builtin */
-    if(FindIdentInTable(symtab->builtins, id, 0) == NULL)
+    if(FindIdentInTable(symtab->builtins, id) == NULL)
     {
         cur_hash = (HashTable_t *)symtab->stack_head->cur;
         return AddIdentToTable(cur_hash, id, var_type, HASHTYPE_FUNCTION_RETURN, args);
@@ -160,7 +160,7 @@ int PushFuncRetOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, List
 /* Returns -1 and sets hash_return to NULL if not found */
 /* Returns >= 0 tells what scope level it was found at */
 /* Mutating tells whether it's being referenced in an assignment context */
-int FindIdent(HashNode_t **hash_return, SymTab_t *symtab, char *id, int mutating)
+int FindIdent(HashNode_t **hash_return, SymTab_t *symtab, char *id)
 {
     int return_val = 0;
     assert(symtab != NULL);
@@ -170,7 +170,7 @@ int FindIdent(HashNode_t **hash_return, SymTab_t *symtab, char *id, int mutating
     HashNode_t *hash_node;
 
     /* First check built-ins */
-    hash_node = FindIdentInTable(symtab->builtins, id, mutating);
+    hash_node = FindIdentInTable(symtab->builtins, id);
     if(hash_node != NULL)
     {
         *hash_return = hash_node;
@@ -181,7 +181,7 @@ int FindIdent(HashNode_t **hash_return, SymTab_t *symtab, char *id, int mutating
     cur = symtab->stack_head;
     while(cur != NULL)
     {
-        hash_node = FindIdentInTable((HashTable_t *)cur->cur, id, mutating);
+        hash_node = FindIdentInTable((HashTable_t *)cur->cur, id);
         if(hash_node != NULL)
         {
             *hash_return = hash_node;

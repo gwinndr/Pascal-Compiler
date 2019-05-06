@@ -11,10 +11,8 @@ void test()
 
 void test2()
 {
-    int y;
 
-    y = 28;
-    printf("%d\n", y);
+    printf("%d\n", 200);
 }
 
 int main()

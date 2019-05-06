@@ -135,8 +135,9 @@ int semcheck_proccall(SymTab_t *symtab, struct Statement *stmt, int max_scope_le
 
     args_given = stmt->stmt_data.procedure_call_data.expr_args;
 
-    scope_return = FindIdent(&sym_return, symtab, (char *)stmt->stmt_data.procedure_call_data.id,
-                                NO_MUTATE);
+    scope_return = FindIdent(&sym_return, symtab, (char *)stmt->stmt_data.procedure_call_data.id);
+    sym_return->referenced += 1;
+
     if(scope_return == -1)
     {
         fprintf(stderr, "Error on line %d, unrecognized name %s\n", stmt->line_num,
@@ -325,7 +326,7 @@ int semcheck_for(SymTab_t *symtab, struct Statement *stmt, int max_scope_lev)
     if(for_assign_type == STMT_FOR_VAR)
     {
         for_var = stmt->stmt_data.for_data.for_assign_data.var;
-        return_val += semcheck_expr_main(&for_type, symtab, for_var, max_scope_lev, NO_MUTATE);
+        return_val += semcheck_expr_main(&for_type, symtab, for_var, max_scope_lev, BOTH_MUTATE_REFERENCE);
         /* Check for type */
         if(for_type != INT_TYPE)
         {
@@ -375,7 +376,7 @@ int semcheck_for_assign(SymTab_t *symtab, struct Statement *for_assign, int max_
     expr = for_assign->stmt_data.var_assign_data.expr;
 
     /* NOTE: Grammar will make sure the left side is a variable */
-    return_val += semcheck_expr_main(&type_first, symtab, var, max_scope_lev, MUTATE);
+    return_val += semcheck_expr_main(&type_first, symtab, var, max_scope_lev, BOTH_MUTATE_REFERENCE);
     return_val += semcheck_expr_main(&type_second, symtab, expr, INT_MAX, NO_MUTATE);
 
     if(type_first != type_second)

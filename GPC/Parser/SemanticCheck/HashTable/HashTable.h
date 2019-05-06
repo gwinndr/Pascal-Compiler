@@ -49,7 +49,7 @@ int AddIdentToTable(HashTable_t *table, char *id, enum VarType var_type,
 
 /* Searches for the given identifier in the table. Returns NULL if not found */
 /* Mutating tells whether it's being referenced in an assignment context */
-HashNode_t *FindIdentInTable(HashTable_t *table, char *id, int mutating);
+HashNode_t *FindIdentInTable(HashTable_t *table, char *id);
 
 /* Resets hash node mutation and reference status */
 void ResetHashNodeStatus(HashNode_t *hash_node);

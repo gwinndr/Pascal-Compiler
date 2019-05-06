@@ -25,15 +25,12 @@ test:
 test2:
 	pushq	%rbp
 	movq	%rsp, %rbp
-	subq	$16, %rsp
-	movl	$28, -4(%rbp)
-	movl	-4(%rbp), %eax
-	movl	%eax, %esi
+	movl	$200, %esi
 	leaq	.LC0(%rip), %rdi
 	movl	$0, %eax
 	call	printf@PLT
 	nop
-	leave
+	popq	%rbp
 	ret
 	.size	test2, .-test2
 	.globl	main

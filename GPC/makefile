@@ -1,12 +1,13 @@
 CC = gcc
 FLAGS = -g
-OPTIMIZE = -O3
+OPTIMIZE =
 LIBS = -ly -ll -lm
 
 PARSER_DIR = Parser
 GRAMMAR_DIR = Parser/LexAndYacc
 TREE_DIR = Parser/ParseTree
 CODEGEN_DIR = CodeGenerator
+OPTIMIZER_DIR = Optimizer
 
 CCFLAGS = $(FLAGS) $(OPTIMIZE)
 
@@ -18,7 +19,8 @@ SEM_OBJS = $(PARSER_DIR)/SemCheck.o $(PARSER_DIR)/HashTable.o $(PARSER_DIR)/SymT
 SEM_OBJS_MORE = $(PARSER_DIR)/SemCheck_stmt.o $(PARSER_DIR)/SemCheck_expr.o
 GRAMMAR_OBJS = $(GRAMMAR_DIR)/lex.yy.o $(GRAMMAR_DIR)/y.tab.o
 CODEGEN_OBJS = $(CODEGEN_DIR)/codegen.o $(CODEGEN_DIR)/stackmng.o $(CODEGEN_DIR)/expr_tree.o
-ALL_OBJS = $(GPC_OBJS) $(GRAMMAR_OBJS) $(PARSER_OBJS) $(TREE_OBJS) $(SEM_OBJS) $(SEM_OBJS_MORE) $(CODEGEN_OBJS)
+OPTIMIZER_OBJS = optimizer.o
+ALL_OBJS = $(GPC_OBJS) $(GRAMMAR_OBJS) $(PARSER_OBJS) $(TREE_OBJS) $(SEM_OBJS) $(SEM_OBJS_MORE) $(CODEGEN_OBJS) $(OPTIMIZER_OBJS)
 
 BIN = gpc
 
@@ -41,6 +43,9 @@ main.o: $(PARSER_OBJS) main.c
 
 flags.o:
 	$(CC) $(CCFLAGS) -c flags.c
+
+optimizer.o:
+	$(CC) $(CCFLAGS) -c $(OPTIMIZER_DIR)/optimizer.c
 
 parser:
 	cd $(PARSER_DIR) && $(MAKE)

@@ -56,8 +56,7 @@ int PushFuncRetOntoScope(SymTab_t *symtab, char *id, enum VarType var_type, List
 /* Searches for an identifier and sets the hash_return that contains the id and type information */
 /* Returns -1 and sets hash_return to NULL if not found */
 /* Returns >= 0 tells what scope level it was found at */
-/* Mutating tells whether it's being referenced in an assignment context */
-int FindIdent(HashNode_t ** hash_return, SymTab_t *symtab, char *id, int mutating);
+int FindIdent(HashNode_t ** hash_return, SymTab_t *symtab, char *id);
 
 /* Pops the current scope */
 void PopScope(SymTab_t *symtab);
