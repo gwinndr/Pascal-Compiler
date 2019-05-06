@@ -126,7 +126,7 @@ int semcheck_program(SymTab_t *symtab, Tree_t *tree)
 
     return_val += semcheck_stmt(symtab, tree->tree_data.program_data.body_statement, 0);
 
-    if(optimize_flag() == 1)
+    if(optimize_flag() == 1 && return_val == 0)
     {
         optimize(symtab, tree);
     }
@@ -336,6 +336,11 @@ int semcheck_subprogram(SymTab_t *symtab, Tree_t *subprogram, int max_scope_lev)
                 subprogram->tree_data.subprogram_data.id);
             ++return_val;
         }
+    }
+
+    if(optimize_flag() == 1 && return_val == 0)
+    {
+        optimize(symtab, subprogram);
     }
 
     PopScope(symtab);

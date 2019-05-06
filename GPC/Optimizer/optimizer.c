@@ -24,6 +24,7 @@
 #include "../Parser/SemanticCheck/HashTable/HashTable.h"
 
 void optimize_prog(SymTab_t *symtab, Tree_t *prog);
+void optimize_subprog(SymTab_t *symtab, Tree_t *sub);
 
 void remove_var_decls(char *id, ListNode_t *var_decls);
 int remove_mutation_statement(char *id, struct Statement *stmt);
@@ -42,6 +43,10 @@ void optimize(SymTab_t *symtab, Tree_t *tree)
     {
         case TREE_PROGRAM_TYPE:
             optimize_prog(symtab, tree);
+            break;
+
+        case TREE_SUBPROGRAM:
+            optimize_subprog(symtab, tree);
             break;
 
         default:
@@ -77,6 +82,41 @@ void optimize_prog(SymTab_t *symtab, Tree_t *prog)
 
         remove_mutation_statement((char *)cur->cur, prog_data->body_statement);
         remove_var_decls((char *)cur->cur, prog_data->var_declaration);
+
+        cur = cur->next;
+    }
+
+    DestroyList(vars_to_check);
+    DestroyList(vars_to_remove);
+}
+
+/* Optimizes a subprogram */
+void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
+{
+    assert(symtab != NULL);
+    assert(sub != NULL);
+    assert(sub->type == TREE_SUBPROGRAM);
+
+    ListNode_t *vars_to_check, *vars_to_remove, *cur;
+    struct Subprogram *sub_data;
+    HashNode_t *node;
+    int replace_with;
+
+    sub_data = &sub->tree_data.subprogram_data;
+    vars_to_check = vars_to_remove = NULL;
+
+    set_vars_lists(symtab, sub_data->declarations, &vars_to_check, &vars_to_remove);
+
+    cur = vars_to_remove;
+    while(cur != NULL)
+    {
+        #ifdef DEBUG_OPTIMIZER
+            fprintf(stderr, "OPTIMIZER: Removing unreferenced variable %s\n",
+                (char *)cur->cur);
+        #endif
+
+        remove_mutation_statement((char *)cur->cur, sub_data->statement_list);
+        remove_var_decls((char *)cur->cur, sub_data->declarations);
 
         cur = cur->next;
     }
