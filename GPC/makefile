@@ -1,6 +1,6 @@
 CC = gcc
 FLAGS = -g
-OPTIMIZE =
+OPTIMIZE = -O3
 LIBS = -ly -ll -lm
 
 PARSER_DIR = Parser
@@ -11,7 +11,7 @@ CODEGEN_DIR = CodeGenerator
 CCFLAGS = $(FLAGS) $(OPTIMIZE)
 
 # Object files to build
-GPC_OBJS = main.o
+GPC_OBJS = main.o flags.o
 PARSER_OBJS = $(PARSER_DIR)/ParsePascal.o
 TREE_OBJS = $(PARSER_DIR)/List.o $(PARSER_DIR)/tree.o
 SEM_OBJS = $(PARSER_DIR)/SemCheck.o $(PARSER_DIR)/HashTable.o $(PARSER_DIR)/SymTab.o
@@ -38,6 +38,9 @@ bin: $(ALL_OBJS)
 
 main.o: $(PARSER_OBJS) main.c
 	$(CC) $(CCFLAGS) -c main.c
+
+flags.o:
+	$(CC) $(CCFLAGS) -c flags.c
 
 parser:
 	cd $(PARSER_DIR) && $(MAKE)

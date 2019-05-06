@@ -14,6 +14,7 @@
 #include "../register_types.h"
 #include "../codegen.h"
 #include "../stackmng/stackmng.h"
+#include "../../../flags.h"
 #include "../../../Parser/List/List.h"
 #include "../../../Parser/ParseTree/tree.h"
 #include "../../../Parser/ParseTree/tree_types.h"
@@ -346,10 +347,16 @@ ListNode_t *gencode_leaf_var(struct Expression *expr, ListNode_t *inst_list,
             {
                 snprintf(buffer, buf_len, "-%d(%%rbp)", stack_node->offset);
             }
-            else
+            else if(nonlocal_flag() == 1)
             {
                 inst_list = codegen_get_nonlocal(inst_list, expr->expr_data.id, &offset);
                 snprintf(buffer, buf_len, "-%d(%s)", offset, NON_LOCAL_REG_64);
+            }
+            else
+            {
+                fprintf(stderr, "ERROR: Non-local codegen support disabled (buggy)!\n");
+                fprintf(stderr, "Enable with flag '-non-local' after required flags\n");
+                exit(1);
             }
 
             break;

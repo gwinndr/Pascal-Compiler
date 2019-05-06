@@ -14,6 +14,7 @@
 #include "codegen.h"
 #include "stackmng/stackmng.h"
 #include "expr_tree/expr_tree.h"
+#include "../../flags.h"
 #include "../../Parser/List/List.h"
 #include "../../Parser/ParseTree/tree.h"
 #include "../../Parser/ParseTree/tree_types.h"
@@ -607,10 +608,16 @@ ListNode_t *codegen_var_assignment(struct Statement *stmt, ListNode_t *inst_list
     {
         snprintf(buffer, 50, "\tmovl\t%s, -%d(%%rbp)\n", reg->bit_32, var->offset);
     }
-    else
+    else if(nonlocal_flag() == 1)
     {
         inst_list = codegen_get_nonlocal(inst_list, var_expr->expr_data.id, &offset);
         snprintf(buffer, 50, "\tmovl\t%s, -%d(%s)\n", reg->bit_32, offset, NON_LOCAL_REG_64);
+    }
+    else
+    {
+        fprintf(stderr, "ERROR: Non-local codegen support disabled (buggy)!\n");
+        fprintf(stderr, "Enable with flag '-non-local' after required flags\n");
+        exit(1);
     }
 
     return add_inst(inst_list, buffer);
