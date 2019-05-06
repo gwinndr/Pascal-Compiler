@@ -26,10 +26,13 @@
 void optimize_prog(SymTab_t *symtab, Tree_t *prog);
 void optimize_subprog(SymTab_t *symtab, Tree_t *sub);
 
-void remove_var_decls(char *id, ListNode_t *var_decls);
-int remove_mutation_statement(char *id, struct Statement *stmt);
-int remove_mutation_var_assign(char *id, struct Statement *var_assign);
-int remove_mutation_compound_statement(char *id, struct Statement *body_statement);
+void remove_var_decls(SymTab_t *symtab, char *id, ListNode_t *var_decls);
+int remove_mutation_statement(SymTab_t *symtab, char *id, struct Statement *stmt);
+int remove_mutation_var_assign(SymTab_t *symtab, char *id, struct Statement *var_assign);
+int remove_mutation_compound_statement(SymTab_t *symtab, char *id, struct Statement *);
+
+void decrement_reference_expr(SymTab_t *symtab, struct Expression *expr);
+
 void set_vars_lists(SymTab_t *, ListNode_t *, ListNode_t **, ListNode_t **);
 void add_to_list(ListNode_t **, void *obj);
 
@@ -65,7 +68,7 @@ void optimize_prog(SymTab_t *symtab, Tree_t *prog)
     ListNode_t *vars_to_check, *vars_to_remove, *cur;
     struct Program *prog_data;
     HashNode_t *node;
-    int replace_with;
+    int replace_with, num_removed, done;
 
     prog_data = &prog->tree_data.program_data;
     vars_to_check = vars_to_remove = NULL;
@@ -73,6 +76,7 @@ void optimize_prog(SymTab_t *symtab, Tree_t *prog)
     set_vars_lists(symtab, prog_data->var_declaration, &vars_to_check, &vars_to_remove);
 
     cur = vars_to_remove;
+    done = num_removed = 0;
     while(cur != NULL)
     {
         #ifdef DEBUG_OPTIMIZER
@@ -80,10 +84,17 @@ void optimize_prog(SymTab_t *symtab, Tree_t *prog)
                 (char *)cur->cur);
         #endif
 
-        remove_mutation_statement((char *)cur->cur, prog_data->body_statement);
-        remove_var_decls((char *)cur->cur, prog_data->var_declaration);
+        num_removed += remove_mutation_statement(symtab, (char *)cur->cur, prog_data->body_statement);
+        remove_var_decls(symtab, (char *)cur->cur, prog_data->var_declaration);
 
         cur = cur->next;
+
+        if(cur == NULL && num_removed > 0)
+        {
+            set_vars_lists(symtab, prog_data->var_declaration, &vars_to_check, &vars_to_remove);
+            cur = vars_to_remove;
+            num_removed = 0;
+        }
     }
 
     DestroyList(vars_to_check);
@@ -100,7 +111,7 @@ void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
     ListNode_t *vars_to_check, *vars_to_remove, *cur;
     struct Subprogram *sub_data;
     HashNode_t *node;
-    int replace_with;
+    int replace_with, done, num_removed;
 
     sub_data = &sub->tree_data.subprogram_data;
     vars_to_check = vars_to_remove = NULL;
@@ -108,6 +119,7 @@ void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
     set_vars_lists(symtab, sub_data->declarations, &vars_to_check, &vars_to_remove);
 
     cur = vars_to_remove;
+    done = num_removed = 0;
     while(cur != NULL)
     {
         #ifdef DEBUG_OPTIMIZER
@@ -115,10 +127,17 @@ void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
                 (char *)cur->cur);
         #endif
 
-        remove_mutation_statement((char *)cur->cur, sub_data->statement_list);
-        remove_var_decls((char *)cur->cur, sub_data->declarations);
+        num_removed += remove_mutation_statement(symtab, (char *)cur->cur, sub_data->statement_list);
+        remove_var_decls(symtab, (char *)cur->cur, sub_data->declarations);
 
         cur = cur->next;
+
+        if(cur == NULL && num_removed > 0)
+        {
+            set_vars_lists(symtab, sub_data->declarations, &vars_to_check, &vars_to_remove);
+            cur = vars_to_remove;
+            num_removed = 0;
+        }
     }
 
     DestroyList(vars_to_check);
@@ -126,7 +145,7 @@ void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
 }
 
 /* Removes all variable declarations matching an id */
-void remove_var_decls(char *id, ListNode_t *var_decls)
+void remove_var_decls(SymTab_t *symtab, char *id, ListNode_t *var_decls)
 {
     Tree_t *var_decl;
     ListNode_t *prev, *ids, *temp;
@@ -167,17 +186,19 @@ void remove_var_decls(char *id, ListNode_t *var_decls)
 }
 
 /* Removes mutation statements that mutate an ID */
-/* Returns 1 if removal occurred */
-int remove_mutation_statement(char *id, struct Statement *stmt)
+/* Returns >1 if removal occurred */
+int remove_mutation_statement(SymTab_t *symtab, char *id, struct Statement *stmt)
 {
+    assert(symtab != NULL);
     assert(stmt != NULL);
+    assert(id != NULL);
     switch(stmt->type)
     {
         case STMT_VAR_ASSIGN:
-            return remove_mutation_var_assign(id, stmt);
+            return remove_mutation_var_assign(symtab, id, stmt);
 
         case STMT_COMPOUND_STATEMENT:
-            return remove_mutation_compound_statement(id, stmt);
+            return remove_mutation_compound_statement(symtab, id, stmt);
 
         case STMT_PROCEDURE_CALL:
             return 0;
@@ -192,10 +213,12 @@ int remove_mutation_statement(char *id, struct Statement *stmt)
 }
 
 /* Removes the var assign if applicable */
-int remove_mutation_var_assign(char *id, struct Statement *var_assign)
+/* Decrements the reference counter for the removed expression if removed */
+int remove_mutation_var_assign(SymTab_t *symtab, char *id, struct Statement *var_assign)
 {
     assert(var_assign != NULL);
     assert(var_assign->type == STMT_VAR_ASSIGN);
+    assert(id != NULL);
 
     struct Expression *var;
 
@@ -207,7 +230,9 @@ int remove_mutation_var_assign(char *id, struct Statement *var_assign)
             fprintf(stderr, "OPTIMIZER: Removing var assign at line %d\n", var_assign->line_num);
         #endif
 
+        decrement_reference_expr(symtab, var_assign->stmt_data.var_assign_data.expr);
         destroy_stmt(var_assign);
+
         return 1;
     }
 
@@ -215,10 +240,11 @@ int remove_mutation_var_assign(char *id, struct Statement *var_assign)
 }
 
 /* Removes all mutation statements from a list of statements */
-int remove_mutation_compound_statement(char *id, struct Statement *body_statement)
+int remove_mutation_compound_statement(SymTab_t *symtab, char *id, struct Statement *body_statement)
 {
     assert(body_statement != NULL);
     assert(body_statement->type == STMT_COMPOUND_STATEMENT);
+    assert(id != NULL);
 
     ListNode_t *statement_list, *prev, *temp;
     struct Statement *stmt;
@@ -230,7 +256,7 @@ int remove_mutation_compound_statement(char *id, struct Statement *body_statemen
     while(statement_list != NULL)
     {
         stmt = (struct Statement *)statement_list->cur;
-        if(remove_mutation_statement(id, stmt) == 1)
+        if(remove_mutation_statement(symtab, id, stmt) > 0)
         {
             ++return_val;
 
@@ -247,12 +273,61 @@ int remove_mutation_compound_statement(char *id, struct Statement *body_statemen
                 prev->next = statement_list;
             }
         }
-
-        prev = statement_list;
-        statement_list = statement_list->next;
+        else
+        {
+            prev = statement_list;
+            statement_list = statement_list->next;
+        }
     }
 
     return return_val;
+}
+
+/* Decrements reference counter for all variables in an expression */
+void decrement_reference_expr(SymTab_t *symtab, struct Expression *expr)
+{
+    assert(expr != NULL);
+
+    HashNode_t *node;
+
+    switch(expr->type)
+    {
+        case EXPR_RELOP:
+            decrement_reference_expr(symtab, expr->expr_data.relop_data.left);
+            decrement_reference_expr(symtab, expr->expr_data.relop_data.right);
+            break;
+
+        case EXPR_SIGN_TERM:
+            decrement_reference_expr(symtab, expr->expr_data.sign_term);
+            break;
+
+        case EXPR_ADDOP:
+            decrement_reference_expr(symtab, expr->expr_data.addop_data.left_expr);
+            decrement_reference_expr(symtab, expr->expr_data.addop_data.right_term);
+            break;
+
+        case EXPR_MULOP:
+            decrement_reference_expr(symtab, expr->expr_data.mulop_data.left_term);
+            decrement_reference_expr(symtab, expr->expr_data.mulop_data.right_factor);
+            break;
+
+        case EXPR_VAR_ID:
+            #ifdef DEBUG_OPTIMIZER
+                fprintf(stderr, "OPTIMIZER: Decremented reference for %s at line %d\n",
+                    expr->expr_data.id, expr->line_num);
+            #endif
+
+            assert(FindIdent(&node, symtab, expr->expr_data.id) == 0);
+            assert(node != NULL);
+            --node->referenced;
+
+            break;
+
+        default:
+            break;
+    }
+
+    return;
 }
 
 /* Gets a list of variables that can be safely removed (not referenced) and ones that will need
@@ -266,6 +341,7 @@ void set_vars_lists(SymTab_t *symtab, ListNode_t *vars, ListNode_t **vars_to_che
     HashNode_t *node;
     Tree_t *var_decl;
 
+    *vars_to_check = *vars_to_remove = NULL;
     while(vars != NULL)
     {
         var_decl = (Tree_t *)vars->cur;
