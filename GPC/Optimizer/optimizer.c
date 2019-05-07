@@ -31,6 +31,9 @@ int remove_mutation_statement(SymTab_t *symtab, char *id, struct Statement *stmt
 int remove_mutation_var_assign(SymTab_t *symtab, char *id, struct Statement *var_assign);
 int remove_mutation_compound_statement(SymTab_t *symtab, char *id, struct Statement *);
 
+void decrement_self_references(SymTab_t *symtab, struct Statement *stmt);
+
+void decrement_reference_id_expr(SymTab_t *symtab, char *id, struct Expression *expr);
 void decrement_reference_expr(SymTab_t *symtab, struct Expression *expr);
 
 void set_vars_lists(SymTab_t *, ListNode_t *, ListNode_t **, ListNode_t **);
@@ -73,6 +76,7 @@ void optimize_prog(SymTab_t *symtab, Tree_t *prog)
     prog_data = &prog->tree_data.program_data;
     vars_to_check = vars_to_remove = NULL;
 
+    decrement_self_references(symtab, prog_data->body_statement);
     set_vars_lists(symtab, prog_data->var_declaration, &vars_to_check, &vars_to_remove);
 
     cur = vars_to_remove;
@@ -91,6 +95,9 @@ void optimize_prog(SymTab_t *symtab, Tree_t *prog)
 
         if(cur == NULL && num_removed > 0)
         {
+            DestroyList(vars_to_check);
+            DestroyList(vars_to_remove);
+
             set_vars_lists(symtab, prog_data->var_declaration, &vars_to_check, &vars_to_remove);
             cur = vars_to_remove;
             num_removed = 0;
@@ -116,6 +123,7 @@ void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
     sub_data = &sub->tree_data.subprogram_data;
     vars_to_check = vars_to_remove = NULL;
 
+    decrement_self_references(symtab, sub_data->statement_list);
     set_vars_lists(symtab, sub_data->declarations, &vars_to_check, &vars_to_remove);
 
     cur = vars_to_remove;
@@ -134,6 +142,9 @@ void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
 
         if(cur == NULL && num_removed > 0)
         {
+            DestroyList(vars_to_check);
+            DestroyList(vars_to_remove);
+
             set_vars_lists(symtab, sub_data->declarations, &vars_to_check, &vars_to_remove);
             cur = vars_to_remove;
             num_removed = 0;
@@ -142,6 +153,45 @@ void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
 
     DestroyList(vars_to_check);
     DestroyList(vars_to_remove);
+}
+
+/* Checks variables for self-references and decrements (ex: c := c+1) */
+void decrement_self_references(SymTab_t *symtab, struct Statement *stmt)
+{
+    assert(symtab != NULL);
+    assert(stmt != NULL);
+
+    HashNode_t *node;
+    struct Expression *expr;
+    ListNode_t *stmt_list;
+    char *id;
+
+    switch(stmt->type)
+    {
+        case STMT_VAR_ASSIGN:
+            expr = stmt->stmt_data.var_assign_data.var;
+            assert(expr != NULL);
+            assert(expr->type == EXPR_VAR_ID);
+            id = expr->expr_data.id;
+
+            expr = expr = stmt->stmt_data.var_assign_data.expr;
+            decrement_reference_id_expr(symtab, id, expr);
+
+            break;
+
+        case STMT_COMPOUND_STATEMENT:
+            stmt_list = stmt->stmt_data.compound_statement;
+            while(stmt_list != NULL)
+            {
+                decrement_self_references(symtab, (struct Statement *)stmt_list->cur);
+                stmt_list = stmt_list->next;
+            }
+
+            break;
+
+        default:
+            break;
+    }
 }
 
 /* Removes all variable declarations matching an id */
@@ -281,6 +331,56 @@ int remove_mutation_compound_statement(SymTab_t *symtab, char *id, struct Statem
     }
 
     return return_val;
+}
+
+/* Decrements references for a specific variable */
+void decrement_reference_id_expr(SymTab_t *symtab, char *id, struct Expression *expr)
+{
+    assert(expr != NULL);
+
+    HashNode_t *node;
+
+    switch(expr->type)
+    {
+        case EXPR_RELOP:
+            decrement_reference_id_expr(symtab, id, expr->expr_data.relop_data.left);
+            decrement_reference_id_expr(symtab, id, expr->expr_data.relop_data.right);
+            break;
+
+        case EXPR_SIGN_TERM:
+            decrement_reference_id_expr(symtab, id, expr->expr_data.sign_term);
+            break;
+
+        case EXPR_ADDOP:
+            decrement_reference_id_expr(symtab, id, expr->expr_data.addop_data.left_expr);
+            decrement_reference_id_expr(symtab, id, expr->expr_data.addop_data.right_term);
+            break;
+
+        case EXPR_MULOP:
+            decrement_reference_id_expr(symtab, id, expr->expr_data.mulop_data.left_term);
+            decrement_reference_id_expr(symtab, id, expr->expr_data.mulop_data.right_factor);
+            break;
+
+        case EXPR_VAR_ID:
+            if(strcmp(expr->expr_data.id, id) == 0)
+            {
+                #ifdef DEBUG_OPTIMIZER
+                    fprintf(stderr, "OPTIMIZER: Decremented reference for %s at line %d\n",
+                        expr->expr_data.id, expr->line_num);
+                #endif
+
+                assert(FindIdent(&node, symtab, expr->expr_data.id) == 0);
+                assert(node != NULL);
+                --node->referenced;
+
+                break;
+            }
+
+        default:
+            break;
+    }
+
+    return;
 }
 
 /* Decrements reference counter for all variables in an expression */
