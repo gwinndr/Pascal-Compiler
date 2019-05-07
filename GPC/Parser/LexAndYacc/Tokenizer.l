@@ -196,7 +196,7 @@ comment [(][*][^*]*[*]+([^*)][^*]*[*]+)*[)]
     return RELOP;
 }
 
-"=="   {
+"="   {
     #ifdef DEBUG_FLEX
         fprintf(stderr, "[RELOP:%s] ", yytext);
     #endif
