@@ -11,16 +11,23 @@
 int FLAG_NON_LOCAL_CHASING = 0;
 
 /* Flag for turning on optimizations */
-/* Set with -optimize */
+/* Set with -O1 and -O2 */
 int FLAG_OPTIMIZE = 0;
 
 void set_nonlocal_flag()
 {
     FLAG_NON_LOCAL_CHASING = 1;
 }
-void set_optimize_flag()
+void set_o1_flag()
 {
-    FLAG_OPTIMIZE = 1;
+    if(FLAG_OPTIMIZE < 1)
+        FLAG_OPTIMIZE = 1;
+}
+
+void set_o2_flag()
+{
+    if(FLAG_OPTIMIZE < 2)
+        FLAG_OPTIMIZE = 2;
 }
 
 int nonlocal_flag()

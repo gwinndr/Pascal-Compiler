@@ -18,10 +18,12 @@
 #include <assert.h>
 #include <string.h>
 #include "optimizer.h"
+#include "../flags.h"
 #include "../Parser/ParseTree/tree.h"
 #include "../Parser/ParseTree/tree_types.h"
 #include "../Parser/SemanticCheck/SymTab/SymTab.h"
 #include "../Parser/SemanticCheck/HashTable/HashTable.h"
+#include "../Parser/LexAndYacc/y.tab.h"
 
 void optimize_prog(SymTab_t *symtab, Tree_t *prog);
 void optimize_subprog(SymTab_t *symtab, Tree_t *sub);
@@ -30,6 +32,9 @@ void remove_var_decls(SymTab_t *symtab, char *id, ListNode_t *var_decls);
 int remove_mutation_statement(SymTab_t *symtab, char *id, struct Statement *stmt);
 int remove_mutation_var_assign(SymTab_t *symtab, char *id, struct Statement *var_assign);
 int remove_mutation_compound_statement(SymTab_t *symtab, char *id, struct Statement *);
+
+void simplify_stmt_expr(struct Statement *);
+int simplify_expr(struct Expression **);
 
 void decrement_self_references(SymTab_t *symtab, struct Statement *stmt);
 
@@ -103,9 +108,13 @@ void optimize_prog(SymTab_t *symtab, Tree_t *prog)
             num_removed = 0;
         }
     }
-
     DestroyList(vars_to_check);
     DestroyList(vars_to_remove);
+
+    if(optimize_flag() >= 2)
+    {
+        simplify_stmt_expr(prog_data->body_statement);
+    }
 }
 
 /* Optimizes a subprogram */
@@ -153,6 +162,11 @@ void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
 
     DestroyList(vars_to_check);
     DestroyList(vars_to_remove);
+
+    if(optimize_flag() >= 2)
+    {
+        simplify_stmt_expr(sub_data->statement_list);
+    }
 }
 
 /* Checks variables for self-references and decrements (ex: c := c+1) */
@@ -331,6 +345,141 @@ int remove_mutation_compound_statement(SymTab_t *symtab, char *id, struct Statem
     }
 
     return return_val;
+}
+
+/* Simplifies expressions by combining operations on constant numbers */
+void simplify_stmt_expr(struct Statement *stmt)
+{
+    assert(stmt != NULL);
+
+    ListNode_t *stmt_list;
+
+    switch(stmt->type)
+    {
+        case STMT_VAR_ASSIGN:
+            simplify_expr(&stmt->stmt_data.var_assign_data.expr);
+
+            break;
+
+        case STMT_COMPOUND_STATEMENT:
+            stmt_list = stmt->stmt_data.compound_statement;
+            while(stmt_list != NULL)
+            {
+                simplify_stmt_expr((struct Statement *)stmt_list->cur);
+                stmt_list = stmt_list->next;
+            }
+
+            break;
+
+        default:
+            break;
+    }
+}
+
+/* Simplifies expressions by combining operations on constant numbers */
+/* Returns 1 if expression given is a constant */
+/* TODO: Support floats */
+/* TODO: Support modulus */
+int simplify_expr(struct Expression **expr)
+{
+    struct Expression *new_expr;
+    int return_val, return_val2, new_val;
+
+    switch((*expr)->type)
+    {
+        case EXPR_INUM:
+        case EXPR_RNUM:
+            return 1;
+
+        case EXPR_SIGN_TERM:
+            return_val = simplify_expr(&(*expr)->expr_data.sign_term);
+            assert((*expr)->expr_data.sign_term != NULL);
+            if(return_val == 1)
+            {
+                #ifdef DEBUG_OPTIMIZER
+                    fprintf(stderr, "OPTIMIZER: Simplying SIGN expression on line %d\n",
+                        (*expr)->line_num);
+                #endif
+
+                new_val = -(*expr)->expr_data.sign_term->expr_data.i_num;
+
+                new_expr = mk_inum((*expr)->line_num, new_val);
+
+                destroy_expr(*expr);
+                *expr = new_expr;
+
+                return 1;
+            }
+
+            return 0;
+
+        case EXPR_ADDOP:
+            return_val = simplify_expr(&(*expr)->expr_data.addop_data.left_expr);
+            return_val2 = simplify_expr(&(*expr)->expr_data.addop_data.right_term);
+            if(return_val == 1 && return_val2 == 1)
+            {
+                #ifdef DEBUG_OPTIMIZER
+                    fprintf(stderr, "OPTIMIZER: Simplying ADDOP expression on line %d\n",
+                        (*expr)->line_num);
+                #endif
+
+                if((*expr)->expr_data.addop_data.addop_type == PLUS)
+                {
+                    new_val = (*expr)->expr_data.addop_data.left_expr->expr_data.i_num +
+                                (*expr)->expr_data.addop_data.right_term->expr_data.i_num;
+                }
+                else
+                {
+                    new_val = (*expr)->expr_data.addop_data.left_expr->expr_data.i_num -
+                                (*expr)->expr_data.addop_data.right_term->expr_data.i_num;
+                }
+
+                new_expr = mk_inum((*expr)->line_num, new_val);
+
+                destroy_expr(*expr);
+                *expr = new_expr;
+
+                return 1;
+            }
+
+            return 0;
+
+        case EXPR_MULOP:
+            return_val = simplify_expr(&(*expr)->expr_data.mulop_data.left_term);
+            return_val2 = simplify_expr(&(*expr)->expr_data.mulop_data.right_factor);
+            if(return_val == 1 && return_val2 == 1)
+            {
+                #ifdef DEBUG_OPTIMIZER
+                    fprintf(stderr, "OPTIMIZER: Simplying MULOP expression on line %d\n",
+                        (*expr)->line_num);
+                #endif
+
+                if((*expr)->expr_data.mulop_data.mulop_type == STAR)
+                {
+                    new_val = (*expr)->expr_data.mulop_data.left_term->expr_data.i_num *
+                                (*expr)->expr_data.mulop_data.right_factor->expr_data.i_num;
+                }
+                else
+                {
+                    new_val = (*expr)->expr_data.mulop_data.left_term->expr_data.i_num /
+                                (*expr)->expr_data.mulop_data.right_factor->expr_data.i_num;
+                }
+
+                new_expr = mk_inum((*expr)->line_num, new_val);
+
+                destroy_expr(*expr);
+                *expr = new_expr;
+
+                return 1;
+            }
+
+            return 0;
+
+        default:
+            return 0;
+    }
+
+    return 0;
 }
 
 /* Decrements references for a specific variable */

@@ -275,7 +275,7 @@ ListNode_t *gencode_case1(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *
     expr = node->expr;
     right_expr = node->right_expr->expr;
     assert(right_expr != NULL);
-    gencode_leaf_var(right_expr, inst_list, name_buf, 30);
+    inst_list = gencode_leaf_var(right_expr, inst_list, name_buf, 30);
     reg = front_reg_stack(reg_stack);
 
     inst_list = gencode_op(expr, name_buf, reg->bit_32, inst_list);
@@ -294,9 +294,9 @@ ListNode_t *gencode_case2(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *
     Register_t *reg1, *reg2;
 
     swap_reg_stack(reg_stack);
-    gencode_expr_tree(node->right_expr, reg_stack, inst_list);
+    inst_list = gencode_expr_tree(node->right_expr, reg_stack, inst_list);
     reg1 = pop_reg_stack(reg_stack);
-    gencode_expr_tree(node->left_expr, reg_stack, inst_list);
+    inst_list = gencode_expr_tree(node->left_expr, reg_stack, inst_list);
 
     reg2 = front_reg_stack(reg_stack);
     inst_list = gencode_op(node->expr, reg1->bit_32, reg2->bit_32, inst_list);
@@ -316,9 +316,9 @@ ListNode_t *gencode_case3(expr_node_t *node, RegStack_t *reg_stack, ListNode_t *
     char op_buf[30];
     Register_t *reg1, *reg2;
 
-    gencode_expr_tree(node->left_expr, reg_stack, inst_list);
+    inst_list = gencode_expr_tree(node->left_expr, reg_stack, inst_list);
     reg1 = pop_reg_stack(reg_stack);
-    gencode_expr_tree(node->right_expr, reg_stack, inst_list);
+    inst_list = gencode_expr_tree(node->right_expr, reg_stack, inst_list);
 
     reg2 = front_reg_stack(reg_stack);
     inst_list = gencode_op(node->expr, reg2->bit_32, reg1->bit_32, inst_list);

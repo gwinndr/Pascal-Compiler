@@ -55,10 +55,15 @@ void set_flags(char **optional_args, int count)
             fprintf(stderr, "WARNING: Non-local is still in development and is very buggy!\n\n");
             set_nonlocal_flag();
         }
-        else if(strcmp(optional_args[i], "-optimize") == 0)
+        else if(strcmp(optional_args[i], "-O1") == 0)
         {
-            fprintf(stderr, "Optimizations enabled!\n\n");
-            set_optimize_flag();
+            fprintf(stderr, "O1 optimizations enabled!\n\n");
+            set_o1_flag();
+        }
+        else if(strcmp(optional_args[i], "-O2") == 0)
+        {
+            fprintf(stderr, "O2 optimizations enabled!\n\n");
+            set_o2_flag();
         }
         else
         {
