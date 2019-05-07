@@ -9,6 +9,6 @@ The exectutable is called 'gpc'
 FLAGS:
     -non-local: Enables the buggy non-local variable references from procedures
 
-    -O1: Enables level-1 optimizations (removes unreferenced variables and their assignments)
+    -O1: Enables level-1 optimizations (simplifies expressions with constant numbers)
 
-    -O2: Enables level-2 optimizations (simplifies expressions with constant numbers)
+    -O2: Enables level-2 optimizations (removes unreferenced variables and their assignments)

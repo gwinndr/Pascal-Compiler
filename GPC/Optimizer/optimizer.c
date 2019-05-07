@@ -81,37 +81,40 @@ void optimize_prog(SymTab_t *symtab, Tree_t *prog)
     prog_data = &prog->tree_data.program_data;
     vars_to_check = vars_to_remove = NULL;
 
-    decrement_self_references(symtab, prog_data->body_statement);
-    set_vars_lists(symtab, prog_data->var_declaration, &vars_to_check, &vars_to_remove);
-
-    cur = vars_to_remove;
-    done = num_removed = 0;
-    while(cur != NULL)
-    {
-        #ifdef DEBUG_OPTIMIZER
-            fprintf(stderr, "OPTIMIZER: Removing unreferenced variable %s\n",
-                (char *)cur->cur);
-        #endif
-
-        num_removed += remove_mutation_statement(symtab, (char *)cur->cur, prog_data->body_statement);
-        remove_var_decls(symtab, (char *)cur->cur, prog_data->var_declaration);
-
-        cur = cur->next;
-
-        if(cur == NULL && num_removed > 0)
-        {
-            DestroyList(vars_to_check);
-            DestroyList(vars_to_remove);
-
-            set_vars_lists(symtab, prog_data->var_declaration, &vars_to_check, &vars_to_remove);
-            cur = vars_to_remove;
-            num_removed = 0;
-        }
-    }
-    DestroyList(vars_to_check);
-    DestroyList(vars_to_remove);
-
     if(optimize_flag() >= 2)
+    {
+        decrement_self_references(symtab, prog_data->body_statement);
+        set_vars_lists(symtab, prog_data->var_declaration, &vars_to_check, &vars_to_remove);
+
+        cur = vars_to_remove;
+        done = num_removed = 0;
+        while(cur != NULL)
+        {
+            #ifdef DEBUG_OPTIMIZER
+                fprintf(stderr, "OPTIMIZER: Removing unreferenced variable %s\n",
+                    (char *)cur->cur);
+            #endif
+
+            num_removed += remove_mutation_statement(symtab, (char *)cur->cur, prog_data->body_statement);
+            remove_var_decls(symtab, (char *)cur->cur, prog_data->var_declaration);
+
+            cur = cur->next;
+
+            if(cur == NULL && num_removed > 0)
+            {
+                DestroyList(vars_to_check);
+                DestroyList(vars_to_remove);
+
+                set_vars_lists(symtab, prog_data->var_declaration, &vars_to_check, &vars_to_remove);
+                cur = vars_to_remove;
+                num_removed = 0;
+            }
+        }
+        DestroyList(vars_to_check);
+        DestroyList(vars_to_remove);
+    }
+
+    if(optimize_flag() >= 1)
     {
         simplify_stmt_expr(prog_data->body_statement);
     }
@@ -132,38 +135,41 @@ void optimize_subprog(SymTab_t *symtab, Tree_t *sub)
     sub_data = &sub->tree_data.subprogram_data;
     vars_to_check = vars_to_remove = NULL;
 
-    decrement_self_references(symtab, sub_data->statement_list);
-    set_vars_lists(symtab, sub_data->declarations, &vars_to_check, &vars_to_remove);
-
-    cur = vars_to_remove;
-    done = num_removed = 0;
-    while(cur != NULL)
+    if(optimize_flag() >= 2)
     {
-        #ifdef DEBUG_OPTIMIZER
-            fprintf(stderr, "OPTIMIZER: Removing unreferenced variable %s\n",
-                (char *)cur->cur);
-        #endif
+        decrement_self_references(symtab, sub_data->statement_list);
+        set_vars_lists(symtab, sub_data->declarations, &vars_to_check, &vars_to_remove);
 
-        num_removed += remove_mutation_statement(symtab, (char *)cur->cur, sub_data->statement_list);
-        remove_var_decls(symtab, (char *)cur->cur, sub_data->declarations);
-
-        cur = cur->next;
-
-        if(cur == NULL && num_removed > 0)
+        cur = vars_to_remove;
+        done = num_removed = 0;
+        while(cur != NULL)
         {
-            DestroyList(vars_to_check);
-            DestroyList(vars_to_remove);
+            #ifdef DEBUG_OPTIMIZER
+                fprintf(stderr, "OPTIMIZER: Removing unreferenced variable %s\n",
+                    (char *)cur->cur);
+            #endif
 
-            set_vars_lists(symtab, sub_data->declarations, &vars_to_check, &vars_to_remove);
-            cur = vars_to_remove;
-            num_removed = 0;
+            num_removed += remove_mutation_statement(symtab, (char *)cur->cur, sub_data->statement_list);
+            remove_var_decls(symtab, (char *)cur->cur, sub_data->declarations);
+
+            cur = cur->next;
+
+            if(cur == NULL && num_removed > 0)
+            {
+                DestroyList(vars_to_check);
+                DestroyList(vars_to_remove);
+
+                set_vars_lists(symtab, sub_data->declarations, &vars_to_check, &vars_to_remove);
+                cur = vars_to_remove;
+                num_removed = 0;
+            }
         }
+
+        DestroyList(vars_to_check);
+        DestroyList(vars_to_remove);
     }
 
-    DestroyList(vars_to_check);
-    DestroyList(vars_to_remove);
-
-    if(optimize_flag() >= 2)
+    if(optimize_flag() >= 1)
     {
         simplify_stmt_expr(sub_data->statement_list);
     }
