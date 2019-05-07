@@ -5,7 +5,7 @@
 
     Stack structure (64-bit):
         This is the current stack structure, subject to changes as needed
-        Last modified 4-21-19
+        Last modified 5-6-19
 
         d_word refers to a doubleword or 4 bytes
         q_word refers to a quadword or 8 bytes
@@ -14,8 +14,7 @@
             - Support non-local variables
             - Support generalized reading and writing
             - Support real numbers
-            - Support temporary block reuse
-            - Support RAX, RDX, and RCX as general purpose registers
+            - Support more general purpose registers
             - Support registers r8-15 as general purpose registers
 
         LOW ADDRESSES
@@ -34,7 +33,9 @@
 
     Above aligned to 16 bytes as standard requires
 
-    NOTE: Add arguments, then locals, then temps to avoid copying
+    NOTES:
+        - Add arguments, then locals, then temps
+        - Function return "variable" pushed to x stack portion (SemCheck makes sure there's no issues)
 
     GENERAL PURPOSE REGISTERS:
         - RBX
@@ -58,16 +59,15 @@
         A stack management structure will be utilized (see stackmng.h)
 
         The stack manager shall consist of:
-            - StackScope structure which contains:
+            - StackScope structure of the current scope which contains:
                 - The current z offset (in bytes)
                 - The current x offset (in bytes)
                 - The current t offset (in bytes)
                 - z blocks in use with labels and offsets
                 - x blocks in use with labels and offsets
-                - z blocks in use with labels and offsets
                 - t blocks in use with labels and offsets
                 - StackScope pointer to previous scope
-            - Register stack of free registers
+            - Register stack of free general-purpose registers
 
     INSTRUCTION LAYOUT:
         The first section of instructions for a function is known as the "prologue."
