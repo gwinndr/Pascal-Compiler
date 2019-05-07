@@ -426,13 +426,13 @@ void codegen_function(Tree_t *func_tree, FILE *o_file)
 
     push_stackscope();
 
-    /* Function name treated as return variable */
-    /* For simplicity, just treating it as a local variable (let semcheck deal with shenanigans) */
-    return_var = add_l_x(sub_id);
-
     inst_list = NULL;
     inst_list = codegen_subprogram_arguments(func->args_var, inst_list, o_file);
 
+    /* Function name treated as return variable */
+    /* For simplicity, just treating it as a local variable (let semcheck deal with shenanigans) */
+    return_var = add_l_x(sub_id);
+    
     codegen_function_locals(func->declarations, o_file);
     codegen_subprograms(func->subprograms, o_file);
 
