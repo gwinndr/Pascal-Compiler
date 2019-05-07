@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 
     if(argc < required_args)
     {
-        fprintf(stderr, "USAGE: [exec] [INPUT_PASCAL_FILE] [OUTPUT_ASSEMBLY_FILE]\n");
+        fprintf(stderr, "USAGE: [exec] [INPUT_FILE] [OUTPUT_FILE] [OPTIONAL_FLAG_1] ...\n");
         exit(1);
     }
 
