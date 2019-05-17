@@ -18,7 +18,7 @@ Despite the thousands of lines of C code (complete with all sorts of heap alloca
 ## How to run
 Before attempting to use this, note that **I have only tested this on Ubuntu-based Linux operating systems**, I have no idea if it will work on anything else. Also, this does not work with any architecture other than 64-bit Intel x86.
 
-After cloning the repository, enter the *GPC* directory and run *make*. This will generate the compiler executable in that same directory called *gpc*. The usage is *gpc [Input File] [Output File]*. The output file is assembly meant to run with gcc so I recommend you create the output file with the *.s* extension to follow naming conventions.
+After cloning the repository, enter the *GPC* directory and run *make*. This will generate the compiler executable in that same directory called *gpc*. The usage is *gpc [Input File] [Output File] [Optional Flag 1] ... *. The output file is assembly meant to run with gcc so I recommend you create the output file with the *.s* extension to follow naming conventions.
 
 Once your output file is generated (assuming no compiler errors occurred), run gcc on it to get the final executable. You do not need to use any gcc flags.
 
