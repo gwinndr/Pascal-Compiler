@@ -3,6 +3,10 @@
 
 Pascal Compiler written in C. Takes Pascal code and outputs gcc-targeted x86-64 assembly. Mileage may vary!
 
+**Disclaimer:** Do not plagiarize this work. It's incredibly easy to tell when code is not your own so don't try to get away with using this as a school project. 
+
+That said, if you're looking for design ideas for your Compiler project, you're fine to look through this work to get a good grasp on how you want to do it.
+
 ---
 
 ## Overview
