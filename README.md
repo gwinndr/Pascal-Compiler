@@ -24,6 +24,11 @@ After cloning the repository, enter the *GPC* directory and run *make*. This wil
 
 Once your output file is generated (assuming no compiler errors occurred), run gcc on it to get the final executable. You do not need to use any gcc flags.
 
+### Example Usage
+gpc test.p test.s
+gcc test.s
+./a.out
+
 ### Compiler Flags
 In addition to base behavior, there are optional flags you can turn on to activate features such as optimizations. Note that higher-level optimizations implicitely activate lower level optimizations (ex: -O2 activates level 2 and level 1 optimizations). The flags are listed below:
 - *-non-local* allows procedures to reference variables in higher scope. THIS IS A VERY BUGGY WORK IN PROGRESS!
