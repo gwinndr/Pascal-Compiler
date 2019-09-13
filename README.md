@@ -25,8 +25,8 @@ After cloning the repository, enter the *GPC* directory and run *make*. This wil
 Once your output file is generated (assuming no compiler errors occurred), run gcc on it to get the final executable. You do not need to use any gcc flags.
 
 ### Example Usage
-gpc test.p test.s
-gcc test.s
+gpc test.p test.s  
+gcc test.s  
 ./a.out
 
 ### Compiler Flags
