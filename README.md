@@ -26,8 +26,8 @@ Once your output file is generated (assuming no compiler errors occurred), run g
 
 ### Example Usage
 gpc test.p test.s  
-gcc test.s  
-./a.out
+gcc -o test test.s  
+./test
 
 ### Compiler Flags
 In addition to base behavior, there are optional flags you can turn on to activate features such as optimizations. Note that higher-level optimizations implicitely activate lower level optimizations (ex: -O2 activates level 2 and level 1 optimizations). The flags are listed below:
