@@ -1,7 +1,7 @@
 CC = gcc
 FLAGS = -g
 OPTIMIZE =
-LIBS = -ly -ll -lm
+LIBS = -ll
 
 PARSER_DIR = Parser
 GRAMMAR_DIR = Parser/LexAndYacc
