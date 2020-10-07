@@ -7,6 +7,15 @@ Pascal Compiler written in C. Takes Pascal code and outputs gcc-targeted x86-64 
 
 ---
 
+## Dependencies
+This project has a dependency on flex and byacc for the syntax parser. You will want to install them with your OS package manager.  
+
+For example, on Ubuntu, this would be:
+```
+sudo apt-get install flex
+sudo apt-get install byacc
+```
+
 ## Overview
 This is a Pascal compiler written in C with help from the tools Flex and Bison for the grammar parsing. The compiler is still a work in progress, but sports procedures, reading and writing from stdin/stdout, and basic expressions with two registers (a full feature list is given in the *Features* section). It also has a basic parse tree and expression optimizer (still a work in progress, but still does some basic optimizations). 
 
